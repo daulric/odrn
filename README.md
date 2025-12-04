@@ -2,15 +2,33 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
+## Setup
 
-1. Install dependencies
+### 1. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. Start the app
+### 2. Configure Supabase
+
+1. Create a `.env` file in the root directory
+2. Add your Supabase credentials:
+
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+   You can find these values in your Supabase project settings: https://app.supabase.com/project/_/settings/api
+
+3. Make sure your Supabase database has a `profiles` table in the `ordn` schema with the following structure:
+   - `id` (uuid, primary key) - References auth.users.id
+   - `username` (text, unique) - User's chosen username
+   - `avatar` (text, nullable) - Avatar URL/path
+   - `created_at` (timestamptz) - Profile creation timestamp
+
+### 3. Start the app
 
    ```bash
    npx expo start
