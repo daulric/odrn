@@ -1,7 +1,6 @@
-import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import 'react-native-url-polyfill/auto';
 
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -10,15 +9,48 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+function createSupabaseClient() {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  // Check if we're in a Node.js environment (SSR) where window/AsyncStorage won't work
+  const isServer = typeof window === 'undefined' && typeof global !== 'undefined' && typeof process !== 'undefined' && process.versions?.node;
+
+  let storage: any = undefined;
+  
+  if (!isServer) {
+    // Only import AsyncStorage on client side (React Native or browser)
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      storage = AsyncStorage;
+    } catch (e) {
+      // AsyncStorage not available, continue without it
+      console.warn('AsyncStorage not available, session persistence disabled');
+    }
+  }
+
+  const authConfig: any = {
     autoRefreshToken: true,
-    persistSession: true,
+    persistSession: !!storage,
     detectSessionInUrl: false,
-  },
-  db: {
-    schema: 'ordn',
-  },
-});
+  };
+
+  if (storage) {
+    authConfig.storage = storage;
+  }
+
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: authConfig,
+    db: {
+      schema: 'ordn',
+    },
+  } as any);
+
+  return supabaseClient;
+}
+
+export const supabase = createSupabaseClient();
 

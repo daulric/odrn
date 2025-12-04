@@ -19,11 +19,6 @@ export default function CreateUsernameScreen() {
     }
   }, [profile]);
 
-  // Don't render if profile already exists with username
-  if (profile && profile.username) {
-    return null;
-  }
-
   const checkUsernameAvailability = async (usernameToCheck: string) => {
     if (!usernameToCheck || usernameToCheck.length < 3) {
       setIsAvailable(null);
@@ -99,8 +94,7 @@ export default function CreateUsernameScreen() {
     try {
       const normalizedUsername = username.toLowerCase().trim();
 
-      const { data: existingProfile, error: existingProfileError } = await supabase
-        .schema('ordn')
+      const { data: existingProfile, error: existingProfileError } = await (supabase as any)
         .from('profiles')
         .select('id')
         .eq('username', normalizedUsername)
@@ -116,8 +110,7 @@ export default function CreateUsernameScreen() {
         return;
       }
 
-      const { error } = await supabase
-        .schema('ordn')
+      const { error } = await (supabase as any)
         .from('profiles')
         .insert({
           id: user.id,
