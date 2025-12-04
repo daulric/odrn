@@ -6,12 +6,6 @@ module.exports = function (api) {
       "nativewind/babel",
     ],
     plugins: [
-      [
-        "module:@preact/signals-react-transform",
-        {
-          importSource: '@preact/signals-react',
-        }
-      ],
       'react-native-reanimated/plugin',
     ],
   };

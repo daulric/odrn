@@ -1,23 +1,24 @@
-import { useSignal } from '@preact/signals-react';
 import { router } from 'expo-router';
 import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuth();
-  const loading = useSignal(false);
+  // use state instead
+  const [loading, setLoading] = useState(false);
 
   const handleLogout = async () => {
-    loading.value = true;
+    setLoading(true);
     try {
       await signOut();
       router.replace('/auth');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to log out');
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
   };
 
@@ -29,12 +30,12 @@ export default function ProfileScreen() {
         </Text>
         <TouchableOpacity
           onPress={handleLogout}
-          disabled={loading.value}
+          disabled={loading}
           className={`w-full max-w-sm h-12 bg-red-500 rounded-lg justify-center items-center ${
-            loading.value ? 'opacity-60' : ''
+            loading ? 'opacity-60' : ''
           }`}
           activeOpacity={0.8}>
-          {loading.value ? (
+          {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text className="text-white text-base font-semibold">Log out</Text>
