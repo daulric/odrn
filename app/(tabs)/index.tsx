@@ -2,18 +2,12 @@ import { Image } from 'expo-image';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import CryptoJS from 'crypto-js';
+import { getGravatarUrl } from '@/lib/getUserProfile';
 
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomeScreen() {
   const { profile, user } = useAuth();
-
-  const getGravatarUrl = (emailAddress: string) => {
-    const address = String(emailAddress).trim().toLowerCase();
-    const hash = CryptoJS.MD5(address).toString();
-    return `https://www.gravatar.com/avatar/${hash}?s=400&d=mp`;
-  };
 
   const avatarSource = { uri: getGravatarUrl(user?.email || "test@test.com") }
 

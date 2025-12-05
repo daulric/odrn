@@ -7,6 +7,7 @@ interface Profile {
   username: string;
   avatar: string | null;
   created_at: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -14,10 +15,12 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  unreadCount: number;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,12 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, avatar, created_at')
+        .select('id, username, avatar, created_at, email')
         .eq('id', userId)
         .single();
 
@@ -47,6 +51,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // If profile exists but has no email, and we have the user's email, update it
+      if (data && !data.email && userEmail) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ email: userEmail })
+          .eq('id', userId);
+        
+        if (!updateError) {
+          data.email = userEmail;
+        } else {
+            console.error('Error updating profile email:', updateError);
+        }
+      }
+
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -54,11 +72,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshProfile = async () => {
-    if (user?.id) {
-      await fetchProfile(user.id);
+  const fetchUnreadCount = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', user.id)
+        .eq('seen', false);
+        
+      if (error) {
+        console.error('Error fetching unread count:', error);
+        return;
+      }
+      
+      setUnreadCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
     }
   };
+
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id, user.email);
+    }
+  };
+
+  // Subscription for global unread count
+  useEffect(() => {
+    if (!user?.id) return;
+
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel('global-unread-count')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'ordn',
+          table: 'messages',
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     // Get initial session
@@ -66,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
+        fetchProfile(session.user.id, session.user.email).finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -79,9 +145,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user.id, session.user.email);
       } else {
         setProfile(null);
+        setUnreadCount(0);
       }
       setLoading(false);
     });
@@ -117,10 +184,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         profile,
         loading,
+        unreadCount,
         signIn,
         signUp,
         signOut,
         refreshProfile,
+        fetchUnreadCount,
       }}
     >
       {children}
@@ -135,4 +204,3 @@ export function useAuth() {
   }
   return context;
 }
-

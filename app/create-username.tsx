@@ -117,6 +117,7 @@ export default function CreateUsernameScreen() {
           username: normalizedUsername,
           avatar: null,
           created_at: new Date().toISOString(),
+          email: user.email,
         });
 
       if (error) {

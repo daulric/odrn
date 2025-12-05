@@ -1,73 +1,249 @@
-import { useState } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Stack } from 'expo-router';
+"use client"
+
+import { useAuth } from "@/contexts/AuthContext"
+import { supabase } from "@/lib/supabase"
+import { Stack, useLocalSearchParams, useRouter } from "expo-router"
+import { useEffect, useRef, useState } from "react"
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, Keyboard } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+
+interface Message {
+  id: string
+  content: string
+  sender_id: string
+  receiver_id: string
+  created_at: string
+  seen: boolean
+}
 
 export default function ChatScreen() {
-  const { id, username } = useLocalSearchParams();
-  const router = useRouter();
-  const [message, setMessage] = useState('');
+  const { id, username } = useLocalSearchParams()
+  const receiverId = Array.isArray(id) ? id[0] : id
+  const { user } = useAuth()
+  const router = useRouter()
+  const [message, setMessage] = useState("")
+  const [messages, setMessages] = useState<Message[]>([])
+  const scrollViewRef = useRef<ScrollView>(null)
 
-  // Mock messages - replace with actual data
-  const messages = [
-    { id: '1', text: 'Hey! How are you doing?', sender: 'other', time: '2:30 PM' },
-    { id: '2', text: 'I am great, thanks! How about you?', sender: 'me', time: '2:31 PM' },
-    { id: '3', text: 'Doing well! Want to catch up later?', sender: 'other', time: '2:32 PM' },
-    { id: '4', text: 'What time works for you?', sender: 'me', time: '2:33 PM' },
-  ];
+  // <CHANGE> Helper function to scroll to bottom
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true })
+    }, 100)
+  }
 
-  const handleSend = () => {
-    if (message.trim()) {
-      console.log('Sending:', message);
-      setMessage('');
+  const markMessagesAsSeen = async () => {
+    if (!user || !receiverId) return
+
+    const { error } = await (supabase as any)
+      .from("messages")
+      .update({ seen: true })
+      .eq("receiver_id", user.id)
+      .eq("sender_id", receiverId)
+      .eq("seen", false)
+
+    if (error) {
+      console.error("Error marking messages as seen:", error)
     }
-  };
+  }
+
+  // <CHANGE> Add keyboard listeners to scroll when keyboard shows
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        scrollToBottom()
+      }
+    )
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        scrollToBottom()
+      }
+    )
+
+    return () => {
+      keyboardDidShowListener.remove()
+      keyboardDidHideListener.remove()
+    }
+  }, [])
+
+  // <CHANGE> Scroll to bottom whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom()
+    }
+  }, [messages])
+
+  useEffect(() => {
+    if (!user || !receiverId) return
+  
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .or(
+          `and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`,
+        )
+        .order("created_at", { ascending: true })
+  
+      if (error) {
+        console.error("Error fetching messages:", error)
+      } else if (data) {
+        setMessages(data)
+        markMessagesAsSeen()
+      }
+    }
+  
+    fetchMessages()
+  
+    const channelName = `chat:${[user.id, receiverId].sort().join('-')}`
+  
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "ordn",
+          table: "messages",
+        },
+        (payload) => {
+          const newMessage = payload.new as Message
+  
+          const isRelevant = 
+            (newMessage.sender_id === user.id && newMessage.receiver_id === receiverId) ||
+            (newMessage.sender_id === receiverId && newMessage.receiver_id === user.id)
+  
+          if (isRelevant) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMessage.id)) {
+                return prev
+              }
+              return [...prev, newMessage]
+            })
+  
+            if (newMessage.receiver_id === user.id) {
+              markMessagesAsSeen()
+            }
+          }
+        },
+      )
+      .subscribe()
+  
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user, receiverId])
+
+  const handleSend = async () => {
+    if (!message.trim() || !user || !receiverId) return
+  
+    const content = message.trim()
+    setMessage("")
+  
+    const tempId = `temp-${Date.now()}-${Math.random()}`
+  
+    const optimisticMessage: Message = {
+      id: tempId,
+      content,
+      sender_id: user.id,
+      receiver_id: receiverId,
+      created_at: new Date().toISOString(),
+      seen: false,
+    }
+  
+    setMessages((prev) => [...prev, optimisticMessage])
+    // <CHANGE> Scroll to bottom immediately after adding optimistic message
+    scrollToBottom()
+  
+    const { data, error } = await (supabase as any)
+      .from("messages")
+      .insert({
+        content,
+        sender_id: user.id,
+        receiver_id: receiverId,
+        seen: false,
+      })
+      .select()
+      .single()
+  
+    if (error) {
+      console.error("Error sending message:", error)
+      setMessages((prev) => prev.filter((m) => m.id !== tempId))
+      setMessage(content)
+    } else if (data) {
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== tempId)
+        if (filtered.some((m) => m.id === data.id)) {
+          return filtered
+        }
+        return [...filtered, data]
+      })
+    }
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
 
   return (
     <>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
-          headerBackTitle: 'Return',
-          title: username as string || 'Chat',
-        }} 
+          headerBackTitle: "Return",
+          title: (username as string) || "Chat",
+        }}
       />
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={['bottom']}>
-        <KeyboardAvoidingView 
-          className="flex-1" 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          {/* Messages */}
-          <ScrollView className="flex-1 px-4 py-4 bg-gray-50 dark:bg-gray-900">
-            {messages.map((msg) => (
-              <View
-                key={msg.id}
-                className={`mb-2 ${msg.sender === 'me' ? 'items-end' : 'items-start'}`}
-              >
-                <View
-                  className={`max-w-[75%] px-3 py-2 ${
-                    msg.sender === 'me'
-                      ? 'bg-green-500 rounded-2xl rounded-br-md'
-                      : 'bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md shadow-sm'
-                  }`}
-                >
-                  <Text className={`text-base ${msg.sender === 'me' ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                    {msg.text}
-                  </Text>
-                  <Text className={`text-xs mt-1 ${msg.sender === 'me' ? 'text-green-50' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {msg.time}
-                  </Text>
+          <ScrollView
+            className="flex-1 px-4 py-4 bg-gray-50 dark:bg-gray-900"
+            ref={scrollViewRef}
+            onContentSizeChange={scrollToBottom}
+            keyboardShouldPersistTaps="handled"
+          >
+            {messages.map((msg) => {
+              const isMe = msg.sender_id === user?.id
+              return (
+                <View key={msg.id} className={`mb-2 ${isMe ? "items-end" : "items-start"}`}>
+                  <View
+                    className={`max-w-[75%] px-3 py-2 ${
+                      isMe
+                        ? "bg-green-500 rounded-2xl rounded-br-md"
+                        : "bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md shadow-sm"
+                    }`}
+                  >
+                    <Text className={`text-base ${isMe ? "text-white" : "text-gray-900 dark:text-white"}`}>
+                      {msg.content}
+                    </Text>
+                    <View className="flex-row items-center justify-end mt-1 gap-1">
+                      <Text className={`text-xs ${isMe ? "text-green-50" : "text-gray-500 dark:text-gray-400"}`}>
+                        {formatTime(msg.created_at)}
+                      </Text>
+                      {isMe && (
+                        <Text className={`text-xs ${isMe ? "text-green-50" : "text-gray-500"}`}>
+                          {msg.seen ? "✓✓" : "✓"}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
                 </View>
-              </View>
-            ))}
+              )
+            })}
           </ScrollView>
 
-          {/* Input - Floating Dynamic Island Style */}
           <View className="px-3 pb-6 pt-2 bg-transparent">
-            <View 
+            <View
               className="flex-row items-center bg-white dark:bg-gray-800 rounded-full px-4 py-2.5 shadow-lg"
               style={{
-                shadowColor: '#000',
+                shadowColor: "#000",
                 shadowOffset: { width: 0, height: -2 },
                 shadowOpacity: 0.15,
                 shadowRadius: 12,
@@ -89,7 +265,7 @@ export default function ChatScreen() {
                 className="ml-2 w-11 h-11 bg-green-500 rounded-full items-center justify-center active:scale-95"
                 disabled={!message.trim()}
                 style={{
-                  shadowColor: '#22c55e',
+                  shadowColor: "#22c55e",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.3,
                   shadowRadius: 4,
@@ -103,5 +279,5 @@ export default function ChatScreen() {
         </KeyboardAvoidingView>
       </SafeAreaView>
     </>
-  );
+  )
 }
