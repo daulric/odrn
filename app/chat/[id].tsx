@@ -2,9 +2,10 @@
 
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
+import { Ionicons } from '@expo/vector-icons'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, Keyboard } from "react-native"
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 interface Message {
@@ -217,7 +218,7 @@ export default function ChatScreen() {
                     className={`max-w-[75%] px-3 py-2 ${
                       isMe
                         ? "bg-green-500 rounded-2xl rounded-br-md"
-                        : "bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md shadow-sm"
+                        : "bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md"
                     }`}
                   >
                     <Text className={`text-base ${isMe ? "text-white" : "text-gray-900 dark:text-white"}`}>
@@ -228,9 +229,11 @@ export default function ChatScreen() {
                         {formatTime(msg.created_at)}
                       </Text>
                       {isMe && (
-                        <Text className={`text-xs ${isMe ? "text-green-50" : "text-gray-500"}`}>
-                          {msg.seen ? "✓✓" : "✓"}
-                        </Text>
+                        <Ionicons 
+                          name={msg.seen ? "checkmark-done" : "checkmark"} 
+                          size={16} 
+                          color={msg.seen ? "#dcfce7" : "#f0fdf4"} 
+                        />
                       )}
                     </View>
                   </View>
@@ -239,9 +242,9 @@ export default function ChatScreen() {
             })}
           </ScrollView>
 
-          <View className="px-3 pb-6 pt-2 bg-transparent">
+          <View className="px-2 pb-6 pt-2 bg-transparent">
             <View
-              className="flex-row items-center bg-white dark:bg-gray-800 rounded-full px-4 py-2.5 shadow-lg"
+              className="flex-row items-center bg-white dark:bg-gray-800 rounded-full px-4 py-1 shadow-lg"
               style={{
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: -2 },
@@ -272,7 +275,7 @@ export default function ChatScreen() {
                   elevation: 4,
                 }}
               >
-                <Text className="text-white text-xl font-bold">➤</Text>
+                <Ionicons name="send" size={20} color="white" style={{ marginLeft: 2 }} />
               </TouchableOpacity>
             </View>
           </View>

@@ -3,10 +3,8 @@ import { getGravatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   RefreshControl,
@@ -18,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // A simple utility to generate a consistent color from a string (username or email)
-// This avoids needing native modules just for colors
 const stringToColor = (str: string) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -33,8 +30,7 @@ const stringToColor = (str: string) => {
 };
 
 export default function ProfileScreen() {
-  const { profile, user, signOut } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { profile, user } = useAuth();
   const [friendCount, setFriendCount] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [headerColor, setHeaderColor] = useState('#93c5fd');
@@ -90,18 +86,6 @@ export default function ProfileScreen() {
     setRefreshing(true);
     await fetchFriendCount();
     setRefreshing(false);
-  };
-
-  const handleLogout = async () => {
-    setLoading(true);
-    try {
-      await signOut();
-      router.replace('/auth');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to log out');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleOpenGravatar = async () => {
@@ -165,56 +149,13 @@ export default function ProfileScreen() {
               {friendCount !== null ? `${friendCount} Friends` : '...'}
             </Text>
           </View>
-
-          {/* Menu Options */}
-          <View className="w-full mt-12 space-y-4">
-            <TouchableOpacity
-              className="flex-row items-center w-full bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm"
-              activeOpacity={0.7}
-            >
-              <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 items-center justify-center mr-4">
-                <Ionicons name="settings-outline" size={22} color="#4b5563" />
-              </View>
-              <Text className="flex-1 text-lg text-gray-900 dark:text-white font-medium">
-                Settings
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="flex-row items-center w-full bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm"
-              activeOpacity={0.7}
-            >
-              <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 items-center justify-center mr-4">
-                <Ionicons name="help-circle-outline" size={22} color="#4b5563" />
-              </View>
-              <Text className="flex-1 text-lg text-gray-900 dark:text-white font-medium">
-                Help & Support
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleLogout}
-              disabled={loading}
-              className={`flex-row items-center w-full bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mt-4 ${
-                loading ? 'opacity-60' : ''
-              }`}
-              activeOpacity={0.7}
-            >
-              <View className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 items-center justify-center mr-4">
-                <Ionicons name="log-out-outline" size={22} color="#ef4444" />
-              </View>
-
-              {loading ? (
-                <ActivityIndicator color="#ef4444" className="flex-1 items-start" />
-              ) : (
-                <Text className="flex-1 text-lg text-red-500 font-medium">
-                  Log out
-                </Text>
-              )}
-            </TouchableOpacity>
+          
+          <View className="mt-8 px-6 w-full items-center">
+             <Text className="text-gray-400 dark:text-gray-500 text-center italic">
+                Your profile is looking great!
+             </Text>
           </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>

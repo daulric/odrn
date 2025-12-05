@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Profile {
   id: string;
@@ -336,7 +337,8 @@ export default function MessagesScreen() {
                   </Text>
                 </View>
               ) : null}
-              <View className="bg-green-100 dark:bg-green-900 px-3 py-1.5 rounded-full">
+              <View className="bg-green-100 dark:bg-green-900 px-3 py-1.5 rounded-full flex-row items-center">
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color={activeTab === 'friends' ? '#15803d' : '#86efac'} style={{ marginRight: 4 }} />
                 <Text className="text-green-700 dark:text-green-300 font-medium text-xs">
                   Message
                 </Text>
@@ -381,15 +383,15 @@ export default function MessagesScreen() {
               <View className="flex-row gap-2">
                 <TouchableOpacity 
                   onPress={() => handleAcceptRequest(item.id)}
-                  className="bg-green-500 px-3 py-1.5 rounded-md"
+                  className="bg-green-500 w-8 h-8 rounded-full items-center justify-center"
                 >
-                  <Text className="text-white font-medium text-xs">Accept</Text>
+                  <Ionicons name="checkmark" size={18} color="white" />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   onPress={() => handleDeclineRequest(item.id)}
-                  className="bg-red-500 px-3 py-1.5 rounded-md"
+                  className="bg-red-500 w-8 h-8 rounded-full items-center justify-center"
                 >
-                  <Text className="text-white font-medium text-xs">Decline</Text>
+                  <Ionicons name="close" size={18} color="white" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -431,10 +433,11 @@ export default function MessagesScreen() {
               </View>
               <TouchableOpacity 
                 onPress={() => handleAddFriend(item.id)}
-                className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700"
+                className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 flex-row items-center"
               >
+                <Ionicons name="person-add-outline" size={16} color="#4b5563" style={{ marginRight: 4 }} />
                 <Text className="text-gray-900 dark:text-white font-medium text-xs">
-                  Add Friend
+                  Add
                 </Text>
               </TouchableOpacity>
             </View>

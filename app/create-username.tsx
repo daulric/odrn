@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -177,15 +178,21 @@ export default function CreateUsernameScreen() {
           )}
 
           {isAvailable === true && !checking && (
-            <Text className="text-sm text-center text-green-600 dark:text-green-400">
-              ✓ Username is available
-            </Text>
+            <View className="flex-row items-center justify-center space-x-1">
+              <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+              <Text className="text-sm text-center text-green-600 dark:text-green-400 ml-1">
+                Username is available
+              </Text>
+            </View>
           )}
 
           {isAvailable === false && !checking && (
-            <Text className="text-sm text-center text-red-600 dark:text-red-400">
-              ✗ Username is already taken
-            </Text>
+            <View className="flex-row items-center justify-center space-x-1">
+              <Ionicons name="close-circle" size={16} color="#dc2626" />
+              <Text className="text-sm text-center text-red-600 dark:text-red-400 ml-1">
+                Username is already taken
+              </Text>
+            </View>
           )}
         </View>
 
