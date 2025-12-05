@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface Profile {
   id: string;
@@ -226,6 +227,7 @@ export default function MessagesScreen() {
 
   // Actions
   const handleAcceptRequest = async (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const { error } = await (supabase as any)
       .from('friends')
       .update({ status: 'accepted' })
@@ -239,6 +241,7 @@ export default function MessagesScreen() {
   };
 
   const handleDeclineRequest = async (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const { error } = await (supabase as any)
       .from('friends')
       .delete()
@@ -254,6 +257,8 @@ export default function MessagesScreen() {
   const handleAddFriend = async (otherUserId: string) => {
     if (!user) return;
     
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     // Check if already exists (optional, but good UX)
     // For now, just try insert
     const { error } = await (supabase as any)
@@ -278,7 +283,10 @@ export default function MessagesScreen() {
 
   const TabButton = ({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: () => void }) => (
     <TouchableOpacity 
-      onPress={onPress}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
       className={`flex-1 py-3 items-center border-b-2 ${isActive ? 'border-green-500' : 'border-transparent'}`}
     >
       <Text className={`text-base font-semibold ${isActive ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'}`}>

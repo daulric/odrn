@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
@@ -141,6 +142,8 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!message.trim() || !user || !receiverId) return
   
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+
     const content = message.trim()
     setMessage("")
   

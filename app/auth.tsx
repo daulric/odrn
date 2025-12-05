@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -24,6 +25,7 @@ export default function AuthScreen() {
   const { signIn, signUp, refreshProfile } = useAuth();
 
   const handleAuth = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -56,6 +58,11 @@ export default function AuthScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleAuthMode = () => {
+    Haptics.selectionAsync();
+    setIsSignUp(!isSignUp);
   };
 
   return (
@@ -165,7 +172,7 @@ export default function AuthScreen() {
               <Text className="text-gray-600 dark:text-gray-400">
                 {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
               </Text>
-              <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
+              <TouchableOpacity onPress={toggleAuthMode}>
                 <Text className="text-blue-600 dark:text-blue-400 font-semibold">
                   {isSignUp ? 'Sign In' : 'Sign Up'}
                 </Text>

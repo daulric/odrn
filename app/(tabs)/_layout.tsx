@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import { Tabs, router } from 'expo-router';
 import React, { useState } from 'react';
@@ -86,6 +87,7 @@ export default function TabLayout() {
           listeners={{
             tabLongPress: (e) => {
               // e.preventDefault(); // Uncomment if we want to prevent navigating to the tab on long press
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
               setIsLogoutMenuVisible(true);
             },
           }}
