@@ -7,13 +7,15 @@
         "android": {
           // This line ensures the output is an APK instead of an AAB
           "buildType": "apk" 
-        }
+        },
+        "channel": "production"
       },
       "preview": {
         "distribution": "internal",
         "android": {
           "buildType": "apk"
-        }
+        },
+        "channel": "preview"
       }
     },
     "submit": {
