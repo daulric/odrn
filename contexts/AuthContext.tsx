@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      setProfile(data);
+      setProfile(data as Profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
@@ -173,8 +173,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
+    try {
+      // Set user offline before logging out
+      if (user?.id) {
+        await supabase
+          .from('profiles')
+          .update({
+            is_online: false,
+            last_seen: new Date().toISOString()
+          })
+          .eq('id', user.id);
+      }
+      
+      // Then sign out
+      await supabase.auth.signOut();
+      setProfile(null);
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Still sign out even if offline update fails
+      await supabase.auth.signOut();
+      setProfile(null);
+    }
   };
 
   return (
