@@ -4,7 +4,7 @@
     "slug": "odrn",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/logo.png",
+    "icon": "./assets/icon/logo.png",
     "scheme": "odrn",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,9 +19,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#000000",
-        "foregroundImage": "./assets/icons/logo.png",
-        "backgroundImage": "./assets/icons/logo.png",
-        "monochromeImage": "./assets/icons/logo.png"
+        "foregroundImage": "./assets/icon/logo.png",
+        "backgroundImage": "./assets/icon/logo.png",
+        "monochromeImage": "./assets/icon/logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -29,7 +29,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/icons/logo.svg",
+      "favicon": "./assets/icon/logo.svg",
       "bundler": "metro"
     },
     "plugins": [
@@ -37,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icons/logo.png",
+          "image": "./assets/icon/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
