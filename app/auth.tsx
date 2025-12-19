@@ -1,19 +1,22 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  Button,
+  Text,
+  TextInput,
+  useTheme
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuthScreen() {
@@ -22,7 +25,9 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
   const { signIn, signUp, refreshProfile } = useAuth();
+  const theme = useTheme();
 
   const handleAuth = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -66,10 +71,10 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
@@ -77,107 +82,100 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 justify-center px-6 py-10">
+            
             {/* Header */}
             <View className="items-center mb-10">
-              <View className="w-16 h-16 bg-blue-600 rounded-2xl items-center justify-center mb-6 shadow-lg shadow-blue-200 dark:shadow-none">
-                <Ionicons name="chatbubble-ellipses" size={32} color="white" />
-              </View>
-              <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <Image
+                source={require('@/assets/icon/logo.svg')}
+                style={{ width: 100, height: 100, borderRadius: 20, overflow: 'hidden' }}
+                contentFit="cover"
+              />
+              <Text variant="headlineMedium" style={{ fontWeight: 'bold', marginBottom: 8, color: theme.colors.onBackground }}>
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
               </Text>
-              <Text className="text-gray-500 dark:text-gray-400 text-center">
+              
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
                 {isSignUp
                   ? 'Sign up to get started with your new account'
-                  : 'Sign in to continue to your conversations'}
+                  : 'Sign in to continue'}
               </Text>
             </View>
 
             {/* Form */}
-            <View className="space-y-4">
-              <View>
-                <Text className="text-gray-700 dark:text-gray-300 font-medium mb-1.5 ml-1">
-                  Email Address
-                </Text>
-                <View className="flex-row items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 h-12">
-                  <Ionicons name="mail-outline" size={20} color="#9ca3af" />
-                  <TextInput
-                    className="flex-1 ml-3 text-gray-900 dark:text-white text-base"
-                    placeholder="name@example.com"
-                    placeholderTextColor="#9ca3af"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    autoComplete="email"
-                  />
-                </View>
-              </View>
+            <View className="space-y-4 gap-4">
+              <TextInput
+                mode="outlined"
+                label="Email Address"
+                placeholder="name@example.com"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                left={<TextInput.Icon icon="email-outline" />}
+                style={{ backgroundColor: theme.colors.surface }}
+              />
 
-              <View>
-                <Text className="text-gray-700 dark:text-gray-300 font-medium mb-1.5 ml-1">
-                  Password
-                </Text>
-                <View className="flex-row items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 h-12">
-                  <Ionicons name="lock-closed-outline" size={20} color="#9ca3af" />
-                  <TextInput
-                    className="flex-1 ml-3 text-gray-900 dark:text-white text-base"
-                    placeholder="Enter your password"
-                    placeholderTextColor="#9ca3af"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoComplete="password"
+              <TextInput
+                mode="outlined"
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="password"
+                left={<TextInput.Icon icon="lock-outline" />}
+                right={
+                  <TextInput.Icon 
+                    icon={showPassword ? 'eye-off' : 'eye'} 
+                    onPress={() => setShowPassword(!showPassword)}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color="#9ca3af"
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
+                }
+                style={{ backgroundColor: theme.colors.surface }}
+              />
 
               {!isSignUp && (
                 <View className="flex-row justify-end">
-                  <TouchableOpacity>
-                    <Text className="text-blue-600 dark:text-blue-400 font-medium text-sm">
+                  <TouchableOpacity onPress={() => {/* Handle forgot password */}}>
+                    <Text 
+                      variant="bodyMedium" 
+                      style={{ color: theme.colors.primary, fontWeight: '600' }}
+                    >
                       Forgot Password?
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              <TouchableOpacity
+              <Button
+                mode="contained"
                 onPress={handleAuth}
+                loading={loading}
                 disabled={loading}
-                className={`bg-blue-600 h-12 rounded-xl flex-row justify-center items-center mt-4 shadow-sm shadow-blue-200 dark:shadow-none ${
-                  loading ? 'opacity-70' : ''
-                }`}
-                activeOpacity={0.8}
+                contentStyle={{ height: 48 }}
+                style={{ marginTop: 8, borderRadius: 8 }}
+                labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
               >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text className="text-white text-lg font-semibold">
-                    {isSignUp ? 'Sign Up' : 'Sign In'}
-                  </Text>
-                )}
-              </TouchableOpacity>
+                {isSignUp ? 'Sign Up' : 'Sign In'}
+              </Button>
             </View>
 
             {/* Footer */}
-            <View className="flex-row justify-center mt-8">
-              <Text className="text-gray-600 dark:text-gray-400">
+            <View className="flex-row justify-center mt-8 items-center">
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
                 {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
               </Text>
               <TouchableOpacity onPress={toggleAuthMode}>
-                <Text className="text-blue-600 dark:text-blue-400 font-semibold">
+                <Text 
+                  variant="bodyMedium" 
+                  style={{ color: theme.colors.primary, fontWeight: 'bold' }}
+                >
                   {isSignUp ? 'Sign In' : 'Sign Up'}
                 </Text>
               </TouchableOpacity>
             </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

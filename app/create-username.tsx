@@ -4,7 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateUsernameScreen() {
@@ -13,6 +21,7 @@ export default function CreateUsernameScreen() {
   const [checking, setChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const { user, profile, refreshProfile } = useAuth();
+  const theme = useTheme();
 
   // Redirect if profile already exists with username
   useEffect(() => {
@@ -142,76 +151,71 @@ export default function CreateUsernameScreen() {
     }
   };
 
-  const getInputBorderColor = () => {
-    if (isAvailable === false) return 'border-red-500';
-    if (isAvailable === true) return 'border-green-500';
-    return 'border-gray-300 dark:border-gray-600';
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       <View className="flex-1 justify-center items-center p-5">
-        <View className="w-full max-w-sm space-y-4">
-        <View className="space-y-2 mb-6">
-          <Text className="text-3xl font-bold text-center text-gray-900 dark:text-white">
-            Create Your Username
-          </Text>
-          <Text className="text-center opacity-70 text-gray-700 dark:text-gray-300">
-            Choose a unique username to get started
-          </Text>
-        </View>
-
-        <View className="space-y-2">
-          <TextInput
-            className={`w-full h-12 border rounded-lg px-4 text-base bg-white dark:bg-gray-800 dark:text-white ${getInputBorderColor()}`}
-            placeholder="Username"
-            placeholderTextColor="#999"
-            value={username}
-            onChangeText={handleUsernameChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading && !checking}
-          />
-
-          {checking && (
-            <Text className="text-sm text-center text-gray-500 dark:text-gray-400">
-              Checking availability...
+        <View className="w-full max-w-sm gap-4">
+          <View className="gap-2 mb-6 items-center">
+            <Text variant="headlineMedium" style={{ fontWeight: 'bold', textAlign: 'center' }}>
+              Create Your Username
             </Text>
-          )}
+            <Text variant="bodyMedium" style={{ opacity: 0.7, textAlign: 'center' }}>
+              Choose a unique username to get started
+            </Text>
+          </View>
 
-          {isAvailable === true && !checking && (
-            <View className="flex-row items-center justify-center space-x-1">
-              <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
-              <Text className="text-sm text-center text-green-600 dark:text-green-400 ml-1">
-                Username is available
-              </Text>
-            </View>
-          )}
+          <View className="gap-2">
+            <TextInput
+              mode="outlined"
+              label="Username"
+              placeholder="e.g. yourname"
+              value={username}
+              onChangeText={handleUsernameChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              disabled={loading || checking}
+              error={isAvailable === false}
+              right={
+                checking ? (
+                  <TextInput.Icon icon={() => <ActivityIndicator size="small" />} />
+                ) : isAvailable === true ? (
+                  <TextInput.Icon icon={() => <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />} />
+                ) : isAvailable === false ? (
+                  <TextInput.Icon icon={() => <Ionicons name="close-circle" size={20} color={theme.colors.error} />} />
+                ) : undefined
+              }
+            />
 
-          {isAvailable === false && !checking && (
-            <View className="flex-row items-center justify-center space-x-1">
-              <Ionicons name="close-circle" size={16} color="#dc2626" />
-              <Text className="text-sm text-center text-red-600 dark:text-red-400 ml-1">
+            {isAvailable === false && !checking && (
+              <HelperText type="error" visible>
                 Username is already taken
-              </Text>
-            </View>
-          )}
-        </View>
-
-          <TouchableOpacity
-            onPress={handleCreateUsername}
-            disabled={loading || checking || isAvailable !== true}
-            className={`w-full h-12 bg-blue-600 rounded-lg justify-center items-center mt-2 ${
-              loading || checking || isAvailable !== true ? 'opacity-60' : ''
-            }`}
-            activeOpacity={0.7}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-base font-semibold">Continue</Text>
+              </HelperText>
             )}
-          </TouchableOpacity>
+
+            {isAvailable === true && !checking && (
+              <HelperText type="info" visible style={{ color: theme.colors.primary }}>
+                Username is available
+              </HelperText>
+            )}
+
+            {checking && (
+              <HelperText type="info" visible>
+                Checking availability...
+              </HelperText>
+            )}
+          </View>
+
+          <Button
+            mode="contained"
+            onPress={handleCreateUsername}
+            loading={loading}
+            disabled={loading || checking || isAvailable !== true}
+            style={{ marginTop: 4, borderRadius: 8 }}
+            contentStyle={{ height: 48 }}
+            labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+          >
+            Continue
+          </Button>
         </View>
       </View>
     </SafeAreaView>

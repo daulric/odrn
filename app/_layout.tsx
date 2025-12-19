@@ -7,6 +7,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 
 function RootLayoutNav() {
   const { session, profile, loading } = useAuth();
@@ -44,15 +45,19 @@ function RootLayoutNav() {
     );
   }
 
+  const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="create-username" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
+      <PaperProvider theme={paperTheme}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="create-username" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </PaperProvider>
     </ThemeProvider>
   );
 }

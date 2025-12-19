@@ -63,6 +63,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      posts: {
+        Row: {
+          id: string;
+          userid: string;
+          content: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          userid: string;
+          content?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          userid?: string;
+          content?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      post_images: {
+        Row: {
+          id: string;
+          post_id: string;
+          image_url: string;
+          order_index: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          image_url: string;
+          order_index?: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          post_id?: string;
+          image_url?: string;
+          order_index?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       messages: {
         Row: {
           id: string;
