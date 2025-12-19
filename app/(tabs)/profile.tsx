@@ -1,9 +1,12 @@
+import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getGravatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image'; // Using expo-image for better caching
 import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -46,6 +49,7 @@ type Post = {
 
 export default function ProfileScreen() {
   const { profile, user } = useAuth();
+  const router = useRouter();
   const [friendCount, setFriendCount] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,6 +217,13 @@ export default function ProfileScreen() {
     
     return (
       <TouchableOpacity 
+        onPress={() => {
+          void Haptics.selectionAsync();
+          router.push({
+            pathname: '/posts/[id]',
+            params: { id: item.id },
+          });
+        }}
         className="bg-gray-200 dark:bg-gray-800 border-white dark:border-gray-900" 
         style={{ 
           width: IMAGE_SIZE, 
@@ -255,19 +266,21 @@ export default function ProfileScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <FlatList
-        data={posts}
-        renderItem={renderPostItem}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={!loading ? renderEmptyComponent : null}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      />
-    </SafeAreaView>
+    <SwipeBetweenTabs current="profile">
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <FlatList
+          data={posts}
+          renderItem={renderPostItem}
+          keyExtractor={(item) => item.id}
+          numColumns={3}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={!loading ? renderEmptyComponent : null}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      </SafeAreaView>
+    </SwipeBetweenTabs>
   );
 }

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useRef } from 'react';
 import CryptoJS from 'crypto-js';
+import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 
 const { width } = Dimensions.get('window');
 
@@ -259,177 +260,179 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={['#6366f1', '#8b5cf6', '#d946ef']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
-        >
-          <View className="px-6 pt-4 pb-8">
-            <Text className="text-4xl font-bold text-white mb-6">Home</Text>
-            
-            <View className="bg-white/20 backdrop-blur-lg rounded-3xl p-5 flex-row items-center">
-              <View className="relative">
-                <Image
-                  source={avatarSource}
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 20,
-                    borderWidth: 3,
-                    borderColor: 'white',
-                  }}
-                />
-                <View className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 rounded-full border-2 border-white" />
-              </View>
+    <SwipeBetweenTabs current="index">
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <LinearGradient
+            colors={['#6366f1', '#8b5cf6', '#d946ef']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
+          >
+            <View className="px-6 pt-4 pb-8">
+              <Text className="text-4xl font-bold text-white mb-6">Home</Text>
               
-              <View className="ml-4 flex-1">
-                <Text className="text-xl font-bold text-white">
-                  {profile?.username || 'User'}
-                </Text>
-                <View className="flex-row items-center mt-1">
-                  <View className="w-2 h-2 bg-green-400 rounded-full mr-2" />
-                  <Text className="text-sm text-white/90 font-medium">Online</Text>
+              <View className="bg-white/20 backdrop-blur-lg rounded-3xl p-5 flex-row items-center">
+                <View className="relative">
+                  <Image
+                    source={avatarSource}
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 20,
+                      borderWidth: 3,
+                      borderColor: 'white',
+                    }}
+                  />
+                  <View className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 rounded-full border-2 border-white" />
+                </View>
+                
+                <View className="ml-4 flex-1">
+                  <Text className="text-xl font-bold text-white">
+                    {profile?.username || 'User'}
+                  </Text>
+                  <View className="flex-row items-center mt-1">
+                    <View className="w-2 h-2 bg-green-400 rounded-full mr-2" />
+                    <Text className="text-sm text-white/90 font-medium">Online</Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
 
-        <View className="mt-6">
-          <View className="flex-row items-center justify-between px-6 mb-4">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-              Friends
-            </Text>
-            {friends.length > 0 && (
-              <Text className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
-                {friends.length} friends
+          <View className="mt-6">
+            <View className="flex-row items-center justify-between px-6 mb-4">
+              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                Friends
               </Text>
+              {friends.length > 0 && (
+                <Text className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
+                  {friends.length} friends
+                </Text>
+              )}
+            </View>
+
+            {loading ? (
+              <View className="px-6 py-8">
+                <ActivityIndicator size="large" color="#6366f1" />
+              </View>
+            ) : friends.length === 0 ? (
+              <View className="px-6 py-8 items-center">
+                <Ionicons name="people-outline" size={48} color="#9CA3AF" />
+                <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                  No friends yet. Start connecting with others!
+                </Text>
+              </View>
+            ) : (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                className="px-6"
+                contentContainerStyle={{ gap: 12 }}
+              >
+                {friends.map((friend) => (
+                  <TouchableOpacity
+                    key={friend.id}
+                    onPress={() => handleFriendPress(friend.id, friend.username)}
+                    className="items-center"
+                    style={{ width: 80 }}
+                  >
+                    <View className="relative">
+                      <Image
+                        source={{ uri: getGravatarUrl(friend.email) }}
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 20,
+                          borderWidth: 2,
+                          borderColor: friend.status === 'online' ? '#22c55e' : '#e5e7eb',
+                        }}
+                      />
+                      {friend.status === 'online' && (
+                        <View className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-950" />
+                      )}
+                    </View>
+                    <Text 
+                      className="text-sm font-medium text-gray-900 dark:text-white mt-2 text-center"
+                      numberOfLines={1}
+                    >
+                      {friend.username.split(' ')[0]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             )}
           </View>
 
-          {loading ? (
-            <View className="px-6 py-8">
-              <ActivityIndicator size="large" color="#6366f1" />
-            </View>
-          ) : friends.length === 0 ? (
-            <View className="px-6 py-8 items-center">
-              <Ionicons name="people-outline" size={48} color="#9CA3AF" />
-              <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
-                No friends yet. Start connecting with others!
+          <View className="mt-8 px-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                Feed
               </Text>
+              <Ionicons name="grid-outline" size={24} color="#6366f1" />
             </View>
-          ) : (
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              className="px-6"
-              contentContainerStyle={{ gap: 12 }}
-            >
-              {friends.map((friend) => (
-                <TouchableOpacity
-                  key={friend.id}
-                  onPress={() => handleFriendPress(friend.id, friend.username)}
-                  className="items-center"
-                  style={{ width: 80 }}
-                >
-                  <View className="relative">
-                    <Image
-                      source={{ uri: getGravatarUrl(friend.email) }}
-                      style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: 20,
-                        borderWidth: 2,
-                        borderColor: friend.status === 'online' ? '#22c55e' : '#e5e7eb',
-                      }}
-                    />
-                    {friend.status === 'online' && (
-                      <View className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-950" />
-                    )}
-                  </View>
-                  <Text 
-                    className="text-sm font-medium text-gray-900 dark:text-white mt-2 text-center"
-                    numberOfLines={1}
-                  >
-                    {friend.username.split(' ')[0]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
 
-        <View className="mt-8 px-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-              Feed
-            </Text>
-            <Ionicons name="grid-outline" size={24} color="#6366f1" />
-          </View>
-
-          {mockMediaFeed.map((media) => (
-            <View key={media.id} className="mb-6 bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm">
-              <View className="flex-row items-center p-4">
-                <Image
-                  source={{ uri: getGravatarUrl(media.username) }}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                  }}
-                />
-                <View className="ml-3 flex-1">
-                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                    {media.username}
-                  </Text>
-                  <Text className="text-sm text-gray-500 dark:text-gray-400">
-                    2 hours ago
-                  </Text>
-                </View>
-                <Ionicons name="ellipsis-horizontal" size={24} color="#9CA3AF" />
-              </View>
-
-              <Image
-                source={{ uri: media.url }}
-                style={{
-                  width: width - 48,
-                  height: (width - 48) * 0.75,
-                }}
-                contentFit="cover"
-              />
-
-              <View className="p-4">
-                <View className="flex-row items-center gap-4 mb-3">
-                  <TouchableOpacity className="flex-row items-center gap-1">
-                    <Ionicons name="heart-outline" size={26} color="#ef4444" />
-                    <Text className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {media.likes}
+            {mockMediaFeed.map((media) => (
+              <View key={media.id} className="mb-6 bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm">
+                <View className="flex-row items-center p-4">
+                  <Image
+                    source={{ uri: getGravatarUrl(media.username) }}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                    }}
+                  />
+                  <View className="ml-3 flex-1">
+                    <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                      {media.username}
                     </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity>
-                    <Ionicons name="chatbubble-outline" size={24} color="#6366f1" />
-                  </TouchableOpacity>
-                  <TouchableOpacity>
-                    <Ionicons name="paper-plane-outline" size={24} color="#8b5cf6" />
-                  </TouchableOpacity>
-                  <View className="flex-1" />
-                  <TouchableOpacity>
-                    <Ionicons name="bookmark-outline" size={24} color="#d946ef" />
-                  </TouchableOpacity>
+                    <Text className="text-sm text-gray-500 dark:text-gray-400">
+                      2 hours ago
+                    </Text>
+                  </View>
+                  <Ionicons name="ellipsis-horizontal" size={24} color="#9CA3AF" />
                 </View>
-                <Text className="text-gray-900 dark:text-white">
-                  <Text className="font-semibold">{media.username}</Text>
-                  {' '}
-                  {media.caption}
-                </Text>
+
+                <Image
+                  source={{ uri: media.url }}
+                  style={{
+                    width: width - 48,
+                    height: (width - 48) * 0.75,
+                  }}
+                  contentFit="cover"
+                />
+
+                <View className="p-4">
+                  <View className="flex-row items-center gap-4 mb-3">
+                    <TouchableOpacity className="flex-row items-center gap-1">
+                      <Ionicons name="heart-outline" size={26} color="#ef4444" />
+                      <Text className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {media.likes}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity>
+                      <Ionicons name="chatbubble-outline" size={24} color="#6366f1" />
+                    </TouchableOpacity>
+                    <TouchableOpacity>
+                      <Ionicons name="paper-plane-outline" size={24} color="#8b5cf6" />
+                    </TouchableOpacity>
+                    <View className="flex-1" />
+                    <TouchableOpacity>
+                      <Ionicons name="bookmark-outline" size={24} color="#d946ef" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text className="text-gray-900 dark:text-white">
+                    <Text className="font-semibold">{media.username}</Text>
+                    {' '}
+                    {media.caption}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </SwipeBetweenTabs>
   );
 }

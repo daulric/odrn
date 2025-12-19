@@ -61,7 +61,22 @@ export type Database = {
           status?: 'pending' | 'accepted';
           created_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "friends_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "friends_friend_id_fkey";
+            columns: ["friend_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       posts: {
         Row: {
@@ -82,7 +97,15 @@ export type Database = {
           content?: string | null;
           created_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "posts_userid_fkey";
+            columns: ["userid"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       post_images: {
         Row: {
@@ -106,7 +129,15 @@ export type Database = {
           order_index?: number;
           created_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "post_images_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       messages: {
         Row: {
@@ -133,7 +164,22 @@ export type Database = {
           created_at?: string;
           seen?: boolean;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_receiver_id_fkey";
+            columns: ["receiver_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
       };
     };
     Views: {};
@@ -142,4 +188,3 @@ export type Database = {
     CompositeTypes: {};
   };
 };
-

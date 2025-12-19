@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -222,7 +223,7 @@ export default function MessagesScreen() {
     // 4. Filter profiles
     const filteredPeople = (allProfiles || []).filter((p: any) => !excludedIds.has(p.id));
 
-    setPeople(filteredPeople);
+    setPeople(filteredPeople as Profile[]);
   };
 
   // Actions
@@ -323,7 +324,10 @@ export default function MessagesScreen() {
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => handleMessage(item.friend.id, item.friend.username)}
+              onPress={() => {
+                void Haptics.selectionAsync();
+                handleMessage(item.friend.id, item.friend.username);
+              }}
               className="flex-row items-center px-5 py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800"
             >
               <Image
@@ -456,50 +460,52 @@ export default function MessagesScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-950" edges={['top']}>
-      <View className="flex-1">
-        {/* Header */}
-        <View className="px-5 py-4 bg-white dark:bg-gray-900">
-          <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-            Social
-          </Text>
-        </View>
+    <SwipeBetweenTabs current="messages">
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-950" edges={['top']}>
+        <View className="flex-1">
+          {/* Header */}
+          <View className="px-5 py-4 bg-white dark:bg-gray-900">
+            <Text className="text-3xl font-bold text-gray-900 dark:text-white">
+              Social
+            </Text>
+          </View>
 
-        {/* Tabs */}
-        <View className="flex-row border-b border-gray-200 dark:border-gray-800">
-          <TabButton 
-            title="Friends" 
-            isActive={activeTab === 'friends'} 
-            onPress={() => setActiveTab('friends')} 
-          />
-          <TabButton 
-            title="Requests" 
-            isActive={activeTab === 'requests'} 
-            onPress={() => setActiveTab('requests')} 
-          />
-          <TabButton 
-            title="People" 
-            isActive={activeTab === 'people'} 
-            onPress={() => setActiveTab('people')} 
-          />
-        </View>
+          {/* Tabs */}
+          <View className="flex-row border-b border-gray-200 dark:border-gray-800">
+            <TabButton 
+              title="Friends" 
+              isActive={activeTab === 'friends'} 
+              onPress={() => setActiveTab('friends')} 
+            />
+            <TabButton 
+              title="Requests" 
+              isActive={activeTab === 'requests'} 
+              onPress={() => setActiveTab('requests')} 
+            />
+            <TabButton 
+              title="People" 
+              isActive={activeTab === 'people'} 
+              onPress={() => setActiveTab('people')} 
+            />
+          </View>
 
-        {/* Search Bar */}
-        <View className="px-5 py-3 bg-white dark:bg-gray-900">
-          <TextInput
-            className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg"
-            placeholder={`Search ${activeTab}...`}
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+          {/* Search Bar */}
+          <View className="px-5 py-3 bg-white dark:bg-gray-900">
+            <TextInput
+              className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-2 rounded-lg"
+              placeholder={`Search ${activeTab}...`}
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
 
-        {/* Content */}
-        <View className="flex-1 bg-gray-50 dark:bg-gray-950">
-          {renderContent()}
+          {/* Content */}
+          <View className="flex-1 bg-gray-50 dark:bg-gray-950">
+            {renderContent()}
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </SwipeBetweenTabs>
   );
 }
