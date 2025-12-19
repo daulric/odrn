@@ -59,9 +59,7 @@
       }
     },
     "owner": "daulric",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/2b7db9ce-1230-40ca-9b85-3367c714c07c"
     }
