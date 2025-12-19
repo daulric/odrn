@@ -3,7 +3,8 @@ import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import { Tabs, router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Modal, TouchableWithoutFeedback, View } from 'react-native';
+import { Button, List, Surface, Text, useTheme } from 'react-native-paper';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
@@ -14,6 +15,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { unreadCount, signOut } = useAuth();
   const [isLogoutMenuVisible, setIsLogoutMenuVisible] = useState(false);
+  const theme = useTheme();
 
   const handleLogout = async () => {
     setIsLogoutMenuVisible(false);
@@ -113,53 +115,68 @@ export default function TabLayout() {
         <TouchableWithoutFeedback onPress={() => setIsLogoutMenuVisible(false)}>
           <View className="flex-1 bg-black/50 justify-end">
             <TouchableWithoutFeedback>
-              <View className="bg-white dark:bg-gray-900 rounded-t-3xl p-6 shadow-lg">
+              <Surface
+                style={{
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  padding: 24,
+                  backgroundColor: theme.colors.background,
+                }}
+                elevation={4}
+              >
                 <View className="items-center mb-6">
-                  <View className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full" />
+                  <View
+                    style={{
+                      width: 48,
+                      height: 6,
+                      borderRadius: 999,
+                      backgroundColor: theme.colors.outlineVariant,
+                    }}
+                  />
                 </View>
                 
-                <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+                <Text variant="titleLarge" style={{ textAlign: 'center', marginBottom: 4 }}>
                   Menu
                 </Text>
-                <Text className="text-gray-500 dark:text-gray-400 mb-8 text-center">
+                <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 16, color: theme.colors.onSurfaceVariant }}>
                   Select an action below
                 </Text>
 
-                <TouchableOpacity
-                  onPress={handleDonate}
-                  className="flex-row items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl mb-3 active:bg-green-100 dark:active:bg-green-900/30"
-                >
-                  <View className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/40 items-center justify-center mr-4">
-                    <Ionicons name="heart" size={22} color="#16a34a" />
-                  </View>
-                  <Text className="text-lg font-semibold text-green-700 dark:text-green-400 flex-1">
-                    Donate
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color="#16a34a" />
-                </TouchableOpacity>
+                <List.Section>
+                  <List.Item
+                    title="Donate"
+                    description="Support development"
+                    onPress={handleDonate}
+                    left={() => (
+                      <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="heart" size={22} color={theme.colors.primary} />
+                      </View>
+                    )}
+                    right={() => <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />}
+                  />
+                  <List.Item
+                    title="Log Out"
+                    description="Sign out of your account"
+                    onPress={handleLogout}
+                    left={() => (
+                      <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="log-out" size={22} color={theme.colors.error} />
+                      </View>
+                    )}
+                    right={() => <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />}
+                  />
+                </List.Section>
 
-                <TouchableOpacity
-                  onPress={handleLogout}
-                  className="flex-row items-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl mb-4 active:bg-red-100 dark:active:bg-red-900/30"
-                >
-                  <View className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 items-center justify-center mr-4">
-                    <Ionicons name="log-out" size={22} color="#ef4444" />
-                  </View>
-                  <Text className="text-lg font-semibold text-red-600 dark:text-red-400 flex-1">
-                    Log Out
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color="#ef4444" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
+                <Button
+                  mode="contained-tonal"
                   onPress={() => setIsLogoutMenuVisible(false)}
-                  className="p-4 bg-gray-100 dark:bg-gray-800 rounded-xl items-center active:bg-gray-200 dark:active:bg-gray-700"
+                  style={{ marginTop: 8, borderRadius: 12 }}
+                  contentStyle={{ paddingVertical: 6 }}
+                  labelStyle={{ fontWeight: '600' }}
                 >
-                  <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  Cancel
+                </Button>
+              </Surface>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>

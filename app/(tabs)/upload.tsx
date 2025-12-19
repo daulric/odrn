@@ -1,15 +1,16 @@
 "use client"
 
+import { useAuth } from "@/contexts/AuthContext"
+import { supabase } from "@/lib/supabase"
+import { Ionicons } from "@expo/vector-icons"
 import { Image } from "expo-image"
 import * as ImagePicker from "expo-image-picker"
 import { LinearGradient } from "expo-linear-gradient"
-import { Ionicons } from "@expo/vector-icons"
-import { useState } from "react"
-import { ScrollView, Text, View, TouchableOpacity, TextInput, ActivityIndicator, Alert, Dimensions } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
-import { useAuth } from "@/contexts/AuthContext"
-import { supabase } from "@/lib/supabase"
 import { useRouter } from "expo-router"
+import { useState } from "react"
+import { Alert, Dimensions, ScrollView, TouchableOpacity, View } from "react-native"
+import { Button, IconButton, Surface, Text, TextInput, useTheme } from "react-native-paper"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 const { width } = Dimensions.get("window")
 
@@ -19,6 +20,7 @@ export default function UploadScreen() {
   const [selectedImages, setSelectedImages] = useState<string[]>([])
   const [caption, setCaption] = useState("")
   const [uploading, setUploading] = useState(false)
+  const theme = useTheme()
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -70,11 +72,9 @@ export default function UploadScreen() {
     const contentType = `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
   
     try {
-      // 1. Fetch the local file URI to get a Blob (Web Standard)
       const response = await fetch(imageUri);
       const blob = await response.blob();
   
-      // 2. Upload the Blob directly to Supabase
       const { data, error } = await supabase.storage
         .from("ordn-images")
         .upload(fileName, blob, {
@@ -84,7 +84,6 @@ export default function UploadScreen() {
   
       if (error) throw error;
   
-      // 3. Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from("ordn-images")
         .getPublicUrl(fileName);
@@ -149,173 +148,331 @@ export default function UploadScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* Modern gradient header */}
         <LinearGradient
-          colors={["#6366f1", "#8b5cf6", "#d946ef"]}
+          colors={["#8b5cf6", "#6366f1", "#3b82f6"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
+          style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 }}
         >
-          <View className="px-6 pt-4 pb-8">
-            <Text className="text-4xl font-bold text-white mb-2">Create Post</Text>
-            <Text className="text-white/80 text-base">Share your moments with friends</Text>
-          </View>
+          <Text variant="headlineLarge" style={{ color: 'white', fontWeight: '700', marginBottom: 6 }}>
+            Create Post
+          </Text>
+          <Text variant="bodyLarge" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            Share your story with the world
+          </Text>
         </LinearGradient>
 
-        <View className="px-6 mt-6">
+        <View style={{ paddingHorizontal: 20, marginTop: -20 }}>
           {selectedImages.length === 0 ? (
-            <>
+            <View style={{ gap: 16 }}>
+              {/* Gallery option - glassmorphism style */}
               <TouchableOpacity
                 onPress={pickImage}
-                className="bg-white dark:bg-gray-800 rounded-3xl p-8 mb-4 items-center border-2 border-dashed border-gray-300 dark:border-gray-700 active:scale-95"
-                style={{
-                  shadowColor: "#6366f1",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 12,
-                  elevation: 4,
-                }}
+                activeOpacity={0.7}
               >
-                <View className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/30 rounded-full items-center justify-center mb-4">
-                  <Ionicons name="image" size={40} color="#6366f1" />
-                </View>
-                <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">Choose from Gallery</Text>
-                <Text className="text-gray-500 dark:text-gray-400 text-center">
-                  Select photos from your camera roll
-                </Text>
+                <Surface
+                  style={{
+                    borderRadius: 20,
+                    backgroundColor: theme.colors.surface,
+                    overflow: 'hidden',
+                    elevation: 0,
+                  }}
+                >
+                  <LinearGradient
+                    colors={[theme.colors.primaryContainer, theme.colors.surface]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ padding: 28 }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View 
+                        style={{ 
+                          width: 64, 
+                          height: 64, 
+                          borderRadius: 20, 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(99, 102, 241, 0.15)'
+                        }}
+                      >
+                        <Ionicons name="images" size={32} color={theme.colors.primary} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 20 }}>
+                        <Text variant="titleLarge" style={{ fontWeight: '700', marginBottom: 4 }}>
+                          Photo Gallery
+                        </Text>
+                        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, lineHeight: 20 }}>
+                          Choose multiple photos from your library
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={24} color={theme.colors.onSurfaceVariant} />
+                    </View>
+                  </LinearGradient>
+                </Surface>
               </TouchableOpacity>
 
+              {/* Camera option */}
               <TouchableOpacity
                 onPress={takePhoto}
-                className="bg-white dark:bg-gray-800 rounded-3xl p-8 items-center border-2 border-dashed border-gray-300 dark:border-gray-700 active:scale-95"
+                activeOpacity={0.7}
+              >
+                <Surface
+                  style={{
+                    borderRadius: 20,
+                    backgroundColor: theme.colors.surface,
+                    overflow: 'hidden',
+                    elevation: 0,
+                  }}
+                >
+                  <LinearGradient
+                    colors={[theme.colors.tertiaryContainer, theme.colors.surface]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ padding: 28 }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View 
+                        style={{ 
+                          width: 64, 
+                          height: 64, 
+                          borderRadius: 20, 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(168, 85, 247, 0.15)'
+                        }}
+                      >
+                        <Ionicons name="camera" size={32} color={theme.colors.tertiary} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 20 }}>
+                        <Text variant="titleLarge" style={{ fontWeight: '700', marginBottom: 4 }}>
+                          Take Photo
+                        </Text>
+                        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, lineHeight: 20 }}>
+                          Capture a new moment right now
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={24} color={theme.colors.onSurfaceVariant} />
+                    </View>
+                  </LinearGradient>
+                </Surface>
+              </TouchableOpacity>
+
+              {/* Pro tip card */}
+              <Surface
                 style={{
-                  shadowColor: "#8b5cf6",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 12,
-                  elevation: 4,
+                  borderRadius: 16,
+                  backgroundColor: theme.colors.secondaryContainer + '40',
+                  padding: 20,
+                  marginTop: 8,
+                  elevation: 0,
                 }}
               >
-                <View className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full items-center justify-center mb-4">
-                  <Ionicons name="camera" size={40} color="#8b5cf6" />
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Ionicons name="bulb" size={20} color={theme.colors.secondary} style={{ marginTop: 2 }} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text variant="labelLarge" style={{ fontWeight: '600', marginBottom: 4, color: theme.colors.onSecondaryContainer }}>
+                      Pro Tip
+                    </Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSecondaryContainer, opacity: 0.8, lineHeight: 18 }}>
+                      You can select multiple photos at once from your gallery to create a photo carousel
+                    </Text>
+                  </View>
                 </View>
-                <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">Take a Photo</Text>
-                <Text className="text-gray-500 dark:text-gray-400 text-center">
-                  Use your camera to capture a moment
-                </Text>
-              </TouchableOpacity>
-            </>
+              </Surface>
+            </View>
           ) : (
-            <>
-              <View className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden mb-6 shadow-lg p-3">
-                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+            <View style={{ gap: 20 }}>
+              {/* Selected images grid */}
+              <Surface
+                style={{
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.surface,
+                  padding: 16,
+                  elevation: 0,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <View>
+                    <Text variant="titleMedium" style={{ fontWeight: '700' }}>
+                      Selected Photos
+                    </Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+                      {selectedImages.length} {selectedImages.length === 1 ? 'photo' : 'photos'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: theme.colors.primaryContainer,
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Ionicons name="add" size={20} color={theme.colors.primary} />
+                    <Text variant="labelLarge" style={{ color: theme.colors.primary, fontWeight: '600', marginLeft: 4 }}>
+                      Add More
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                   {selectedImages.map((imageUri, index) => {
-                    // Calculate proper grid sizing: 2 columns with equal spacing
-                    const imageSize = (width - 48 - 16 - 8) / 2 // account for container padding and gap
+                    const imageSize = (width - 40 - 32 - 24) / 2
 
                     return (
                       <View
                         key={index}
-                        className="relative"
                         style={{
                           width: imageSize,
                           height: imageSize,
+                          borderRadius: 16,
+                          overflow: 'hidden',
+                          position: 'relative',
                         }}
                       >
                         <Image
                           source={{ uri: imageUri }}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            borderRadius: 16,
-                          }}
+                          style={{ width: "100%", height: "100%" }}
                           contentFit="cover"
                         />
+                        {/* Gradient overlay */}
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.3)']}
+                          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                        />
+                        {/* Remove button */}
                         <TouchableOpacity
                           onPress={() => removeImage(index)}
-                          className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full items-center justify-center"
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                         >
-                          <Ionicons name="close" size={20} color="white" />
+                          <Ionicons name="close" size={18} color="white" />
                         </TouchableOpacity>
-                        <View className="absolute bottom-2 left-2 w-6 h-6 bg-indigo-600 rounded-full items-center justify-center">
-                          <Text className="text-white text-xs font-bold">{index + 1}</Text>
+                        {/* Order badge */}
+                        <View
+                          style={{
+                            position: 'absolute',
+                            bottom: 8,
+                            left: 8,
+                            width: 28,
+                            height: 28,
+                            borderRadius: 14,
+                            backgroundColor: theme.colors.primary,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Text style={{ color: theme.colors.onPrimary, fontSize: 13, fontWeight: '700' }}>
+                            {index + 1}
+                          </Text>
                         </View>
                       </View>
                     )
                   })}
                 </View>
+              </Surface>
 
-                <TouchableOpacity
-                  onPress={pickImage}
-                  className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex-row items-center justify-center"
-                >
-                  <Ionicons name="add-circle" size={24} color="#6366f1" />
-                  <Text className="text-indigo-600 dark:text-indigo-400 font-semibold ml-2">Add More Images</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View className="bg-white dark:bg-gray-800 rounded-3xl p-6 mb-6 shadow-sm">
-                <View className="flex-row items-center mb-4">
-                  <Ionicons name="text" size={24} color="#6366f1" />
-                  <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-3">Add a caption</Text>
+              {/* Caption input */}
+              <Surface
+                style={{
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.surface,
+                  padding: 20,
+                  elevation: 0,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                  <View 
+                    style={{ 
+                      width: 40, 
+                      height: 40, 
+                      borderRadius: 12, 
+                      backgroundColor: theme.colors.primaryContainer,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
+                  </View>
+                  <Text variant="titleMedium" style={{ fontWeight: '700', marginLeft: 12 }}>
+                    Add Caption
+                  </Text>
                 </View>
+                
                 <TextInput
-                  className="text-gray-900 dark:text-white text-base p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl"
-                  placeholder="What's on your mind?"
-                  placeholderTextColor="#9CA3AF"
+                  mode="outlined"
+                  placeholder="Share your thoughts..."
                   value={caption}
                   onChangeText={setCaption}
                   multiline
                   maxLength={500}
-                  style={{ minHeight: 120, textAlignVertical: "top" }}
-                />
-                <Text className="text-gray-400 text-sm mt-2 text-right">{caption.length}/500</Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleUpload}
-                disabled={uploading}
-                className="rounded-2xl p-5 items-center mb-4 active:scale-95"
-                style={{
-                  shadowColor: "#6366f1",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 12,
-                  elevation: 8,
-                }}
-              >
-                <LinearGradient
-                  colors={["#6366f1", "#8b5cf6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    borderRadius: 16,
+                  style={{ 
+                    minHeight: 120, 
+                    backgroundColor: theme.colors.background,
                   }}
+                  outlineStyle={{ borderRadius: 16, borderWidth: 2 }}
+                  contentStyle={{ paddingTop: 12 }}
                 />
-                {uploading ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <View className="flex-row items-center">
-                    <Ionicons name="cloud-upload" size={24} color="white" />
-                    <Text className="text-white text-lg font-bold ml-3">Share Post</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Optional, but adds context to your post
+                  </Text>
+                  <Text 
+                    variant="labelMedium" 
+                    style={{ 
+                      color: caption.length > 450 ? theme.colors.error : theme.colors.outline,
+                      fontWeight: '600'
+                    }}
+                  >
+                    {caption.length}/500
+                  </Text>
+                </View>
+              </Surface>
 
-              <TouchableOpacity
-                onPress={() => setSelectedImages([])}
-                disabled={uploading}
-                className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 items-center active:scale-95"
-              >
-                <Text className="text-gray-900 dark:text-white text-lg font-semibold">Clear All Images</Text>
-              </TouchableOpacity>
-            </>
+              {/* Action buttons */}
+              <View style={{ gap: 12, marginBottom: 24 }}>
+                <Button
+                  mode="contained"
+                  onPress={handleUpload}
+                  disabled={uploading}
+                  loading={uploading}
+                  style={{ borderRadius: 16 }}
+                  contentStyle={{ paddingVertical: 12 }}
+                  labelStyle={{ fontSize: 16, fontWeight: '700', letterSpacing: 0.5 }}
+                >
+                  {uploading ? <Ionicons name="cloud-upload-outline" size={20} color={theme.colors.background} /> : <Ionicons name="paper-plane-outline" size={20} color={theme.colors.background} />}
+                  {uploading ? 'Uploading...' : 'Share Post'}
+                </Button>
+
+                <Button
+                  mode="outlined"
+                  onPress={() => setSelectedImages([])}
+                  disabled={uploading}
+                  style={{ borderRadius: 16, borderWidth: 2 }}
+                  contentStyle={{ paddingVertical: 12 }}
+                  labelStyle={{ fontSize: 15, fontWeight: '600' }}
+                >
+                  <Ionicons name="trash-outline" size={20} color={theme.colors.onSurfaceVariant} />
+                  Clear All
+                </Button>
+              </View>
+            </View>
           )}
         </View>
       </ScrollView>

@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native"
+import { IconButton, Surface, Text, TextInput, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 interface Message {
@@ -26,6 +27,7 @@ export default function ChatScreen() {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const scrollViewRef = useRef<ScrollView>(null)
+  const theme = useTheme()
 
   // <CHANGE> Helper function to scroll to bottom
   const scrollToBottom = () => {
@@ -201,14 +203,15 @@ export default function ChatScreen() {
           title: (username as string) || "Chat",
         }}
       />
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
+      <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={["bottom"]}>
         <KeyboardAvoidingView
           className="flex-1"
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
           <ScrollView
-            className="flex-1 px-4 py-4 bg-gray-50 dark:bg-gray-900"
+            className="flex-1 px-4 py-4"
+            style={{ backgroundColor: theme.colors.background }}
             ref={scrollViewRef}
             onContentSizeChange={scrollToBottom}
             keyboardShouldPersistTaps="handled"
@@ -217,70 +220,72 @@ export default function ChatScreen() {
               const isMe = msg.sender_id === user?.id
               return (
                 <View key={msg.id} className={`mb-2 ${isMe ? "items-end" : "items-start"}`}>
-                  <View
-                    className={`max-w-[75%] px-3 py-2 ${
-                      isMe
-                        ? "bg-green-500 rounded-2xl rounded-br-md"
-                        : "bg-white dark:bg-gray-800 rounded-2xl rounded-bl-md"
-                    }`}
+                  <Surface
+                    style={{
+                      maxWidth: "75%",
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: isMe ? theme.colors.primary : theme.colors.surface,
+                      borderRadius: 18,
+                      borderBottomRightRadius: isMe ? 6 : 18,
+                      borderBottomLeftRadius: isMe ? 18 : 6,
+                      elevation: 1,
+                    }}
                   >
-                    <Text className={`text-base ${isMe ? "text-white" : "text-gray-900 dark:text-white"}`}>
+                    <Text style={{ fontSize: 16, color: isMe ? theme.colors.onPrimary : theme.colors.onSurface }}>
                       {msg.content}
                     </Text>
-                    <View className="flex-row items-center justify-end mt-1 gap-1">
-                      <Text className={`text-xs ${isMe ? "text-green-50" : "text-gray-500 dark:text-gray-400"}`}>
+                    <View className="flex-row items-center justify-end mt-1" style={{ gap: 4 }}>
+                      <Text style={{ fontSize: 12, color: isMe ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }}>
                         {formatTime(msg.created_at)}
                       </Text>
                       {isMe && (
                         <Ionicons 
                           name={msg.seen ? "checkmark-done" : "checkmark"} 
                           size={16} 
-                          color={msg.seen ? "#dcfce7" : "#f0fdf4"} 
+                          color={msg.seen ? theme.colors.onPrimary : theme.colors.onPrimary}
                         />
                       )}
                     </View>
-                  </View>
+                  </Surface>
                 </View>
               )
             })}
           </ScrollView>
 
           <View className="px-2 pb-6 pt-2 bg-transparent">
-            <View
-              className="flex-row items-center bg-white dark:bg-gray-800 rounded-full px-4 py-1 shadow-lg"
+            <Surface
               style={{
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: -2 },
-                shadowOpacity: 0.15,
-                shadowRadius: 12,
-                elevation: 8,
+                flexDirection: "row",
+                alignItems: "center",
+                borderRadius: 999,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                elevation: 6,
               }}
             >
               <TextInput
-                className="flex-1 text-gray-900 dark:text-white text-base py-1.5 px-1"
+                mode="flat"
                 placeholder="Message"
-                placeholderTextColor="#9CA3AF"
                 value={message}
                 onChangeText={setMessage}
-                multiline
                 maxLength={500}
-                style={{ maxHeight: 100 }}
+                style={{ flex: 1, backgroundColor: "transparent", maxHeight: 100 }}
+                underlineColor="transparent"
+                activeUnderlineColor="transparent"
+                dense
               />
-              <TouchableOpacity
+              <IconButton
+                icon="send"
+                size={22}
                 onPress={handleSend}
-                className="ml-2 w-11 h-11 bg-green-500 rounded-full items-center justify-center active:scale-95"
                 disabled={!message.trim()}
-                style={{
-                  shadowColor: "#22c55e",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                  elevation: 4,
-                }}
-              >
-                <Ionicons name="send" size={20} color="white" style={{ marginLeft: 2 }} />
-              </TouchableOpacity>
-            </View>
+                mode="contained-tonal"
+                containerColor={theme.colors.primary}
+                iconColor={theme.colors.onPrimary}
+                style={{ marginLeft: 4 }}
+              />
+            </Surface>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
