@@ -1,9 +1,10 @@
-import * as Updates from 'expo-updates';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ProgressBar, Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,6 +14,7 @@ export default function UpdatesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { session, profile, loading: authLoading } = useAuth();
+  const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
   const [phase, setPhase] = useState<Phase>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -91,9 +93,16 @@ export default function UpdatesScreen() {
   };
 
   useEffect(() => {
+    // In Expo Go, skip this screen entirely.
+    // (EAS Update OTA checks are not meaningful in Expo Go for your app.)
+    if (isExpoGo) {
+      router.replace('/');
+      return;
+    }
+
     void checkAndMaybeUpdate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isExpoGo]);
 
   // When we're done checking and auth is ready, continue.
   useEffect(() => {
@@ -124,7 +133,7 @@ export default function UpdatesScreen() {
           </Text>
 
           <View style={{ marginTop: 16 }}>
-            {(phase === 'checking' || phase === 'downloading') && (
+            {(phase === 'checking' || phase === 'downloading' || phase === 'done') && (
               <ProgressBar indeterminate color={theme.colors.primary} />
             )}
 
@@ -138,15 +147,7 @@ export default function UpdatesScreen() {
               </Button>
             )}
 
-            {phase === 'done' && (
-              <Button
-                mode="contained"
-                onPress={navigateNext}
-                style={{ marginTop: 12, borderRadius: 12 }}
-              >
-                Continue
-              </Button>
-            )}
+            {/* phase === 'done' auto-navigates via useEffect */}
           </View>
         </Surface>
       </View>

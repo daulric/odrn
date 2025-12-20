@@ -1,5 +1,3 @@
-"use client"
-
 import { getGravatarUrl } from "@/lib/getUserProfile"
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from "@expo/vector-icons"

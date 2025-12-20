@@ -1,12 +1,10 @@
-"use client"
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { File } from "expo-file-system";
 import { Image } from "expo-image";
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 //import * as ImageManipulator from 'expo-image-manipulator'
+import { SwipeBetweenTabs } from "@/components/swipe-between-tabs";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -14,7 +12,6 @@ import { useState } from "react";
 import { Alert, Dimensions, ScrollView, TouchableOpacity, View } from "react-native";
 import { Button, Surface, Text, TextInput, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SwipeBetweenTabs } from "@/components/swipe-between-tabs";
 
 const { width } = Dimensions.get("window")
 

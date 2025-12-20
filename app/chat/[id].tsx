@@ -1,5 +1,3 @@
-"use client"
-
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from '@expo/vector-icons'
