@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
+import { MD3DarkTheme, MD3LightTheme, Provider as PaperProvider } from 'react-native-paper';
 
 function RootLayoutNav() {
   const { session, profile, loading } = useAuth();
@@ -19,19 +19,20 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
 
-    const currentSegment = segments[0];
+    const currentSegment = String(segments[0] ?? '');
     const inAuthGroup = currentSegment === 'auth';
     const inCreateUsernameGroup = currentSegment === 'create-username';
     const inTabsGroup = currentSegment === '(tabs)';
+    const inUpdatesScreen = currentSegment === 'updates-screen';
 
     if (!session) {
       // Not signed in, redirect to auth (unless already on auth or index)
-      if (!inAuthGroup && !inTabsGroup) {
+      if (!inAuthGroup && !inTabsGroup && !inUpdatesScreen) {
         router.replace('/auth');
       }
     } else if (session && !profile) {
       // Signed in but no profile, redirect to create username (unless already there or in tabs)
-      if (!inCreateUsernameGroup && !inTabsGroup) {
+      if (!inCreateUsernameGroup && !inTabsGroup && !inUpdatesScreen) {
         router.replace('/create-username');
       }
     }
@@ -52,7 +53,8 @@ function RootLayoutNav() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <PaperProvider theme={paperTheme}>
-          <Stack>
+          <Stack initialRouteName="updates-screen">
+            <Stack.Screen name="updates-screen" options={{ headerShown: false }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="create-username" options={{ headerShown: false }} />
