@@ -79,16 +79,9 @@ export default function MoreScreen() {
         </Text>
         
         <MenuOption 
-          icon="settings-outline" 
-          label="Settings" 
-        />
-        <MenuOption 
-          icon="notifications-outline" 
-          label="Notifications" 
-        />
-        <MenuOption 
           icon="shield-checkmark-outline" 
           label="Privacy & Security" 
+          onPress={() => router.push('/info/privacy')}
         />
 
         <Text className="text-gray-500 dark:text-gray-400 font-medium mb-4 mt-4 ml-1 uppercase text-xs">
@@ -98,10 +91,12 @@ export default function MoreScreen() {
         <MenuOption 
           icon="help-circle-outline" 
           label="Help & Support" 
+          onPress={() => router.push('/info/support')}
         />
         <MenuOption 
           icon="information-circle-outline" 
           label="About" 
+          onPress={() => router.push('/info/about')}
         />
 
         <View className="mt-8">

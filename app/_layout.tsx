@@ -67,6 +67,27 @@ function RootLayoutNav() {
               }}
             />
             <Stack.Screen
+              name="info/about"
+              options={{
+                title: "About",
+                headerBackTitle: "Return",
+              }}
+            />
+            <Stack.Screen
+              name="info/privacy"
+              options={{
+                title: "Privacy",
+                headerBackTitle: "Return",
+              }}
+            />
+            <Stack.Screen
+              name="info/support"
+              options={{
+                title: "Support",
+                headerBackTitle: "Return",
+              }}
+            />
+            <Stack.Screen
               name="posts/[id]"
               options={{
                 title: "Post",
