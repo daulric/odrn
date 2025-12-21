@@ -1,14 +1,14 @@
-import { Image } from 'expo-image';
-import { ScrollView, Text, View, TouchableOpacity, Dimensions, ActivityIndicator, AppState } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import CryptoJS from 'crypto-js';
-import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Appbar, Avatar, Badge, Card, IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -20,56 +20,31 @@ interface Friend {
   last_seen?: string;
 }
 
-interface MediaItem {
+type FeedPost = {
   id: string;
-  type: 'image';
-  url: string;
-  username: string;
-  caption: string;
-  likes: number;
-}
-
-const mockMediaFeed: MediaItem[] = [
-  {
-    id: '1',
-    type: 'image',
-    url: 'https://picsum.photos/seed/1/800/600',
-    username: 'Sarah Chen',
-    caption: 'Beautiful sunset at the beach',
-    likes: 234,
-  },
-  {
-    id: '2',
-    type: 'image',
-    url: 'https://picsum.photos/seed/2/800/600',
-    username: 'Mike Ross',
-    caption: 'Coffee and code',
-    likes: 189,
-  },
-  {
-    id: '3',
-    type: 'image',
-    url: 'https://picsum.photos/seed/3/800/600',
-    username: 'Emma Wilson',
-    caption: 'Mountain views',
-    likes: 456,
-  },
-  {
-    id: '4',
-    type: 'image',
-    url: 'https://picsum.photos/seed/4/800/600',
-    username: 'James Taylor',
-    caption: 'City lights at night',
-    likes: 321,
-  },
-];
+  userid: string;
+  content: string | null;
+  created_at: string | null;
+  post_images: { image_url: string; order_index: number | null }[];
+  profiles: { username: string | null; email: string | null } | null;
+};
 
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const router = useRouter();
+  const theme = useTheme();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
   const appState = useRef(AppState.currentState);
+  const FRIEND_GAP = 12;
+  const PAGE_HORIZONTAL_PADDING = 16;
+  const FRIENDS_PER_VIEW = Math.min(Math.max(friends.length, 3), 5); // scale up to 5 cards wide
+  const availableWidth = width - PAGE_HORIZONTAL_PADDING * 2;
+  const friendCardWidth = Math.floor(
+    Math.max(76, Math.min(92, (availableWidth - FRIEND_GAP * (FRIENDS_PER_VIEW - 1)) / FRIENDS_PER_VIEW))
+  );
 
   const getGravatarUrl = (emailAddress: string) => {
     const address = String(emailAddress).trim().toLowerCase();
@@ -78,6 +53,19 @@ export default function HomeScreen() {
   };
 
   const avatarSource = { uri: getGravatarUrl(user?.email || "test@test.com") };
+
+  const formatTimeAgo = (dateString: string | null) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
 
   // Helper to check if a user is truly online based on last_seen
   const isUserOnline = (isOnline: boolean, lastSeen?: string) => {
@@ -255,182 +243,295 @@ export default function HomeScreen() {
     };
   }, [user]);
 
+  // Fetch feed posts
+  useEffect(() => {
+    const fetchFeed = async () => {
+      setFeedLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select(
+            `
+            id,
+            userid,
+            content,
+            created_at,
+            post_images (
+              image_url,
+              order_index
+            ),
+            profiles (
+              username,
+              email
+            )
+          `
+          )
+          .order('created_at', { ascending: false })
+          .limit(25);
+
+        if (error) throw error;
+        setFeedPosts((data as any) ?? []);
+      } catch (e) {
+        console.error('Error fetching feed:', e);
+        setFeedPosts([]);
+      } finally {
+        setFeedLoading(false);
+      }
+    };
+
+    fetchFeed();
+  }, []);
+
   const handleFriendPress = (friendId: string, username: string) => {
     router.push(`/chat/${friendId}?username=${username}`);
   };
 
   return (
     <SwipeBetweenTabs current="index">
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <LinearGradient
-            colors={['#6366f1', '#8b5cf6', '#d946ef']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
+      {/* Avoid double top inset: Appbar.Header already accounts for the status bar/safe area. */}
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['left', 'right', 'bottom']}>
+        <Appbar.Header elevated>
+          <Appbar.Content title="Home" />
+          <Appbar.Action icon="magnify" onPress={() => {}} />
+        </Appbar.Header>
+
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Profile / status card */}
+          <Surface
+            style={{
+              borderRadius: 20,
+              padding: 16,
+              backgroundColor: theme.colors.primaryContainer,
+              elevation: 1,
+            }}
           >
-            <View className="px-6 pt-4 pb-8">
-              <Text className="text-4xl font-bold text-white mb-6">Home</Text>
-              
-              <View className="bg-white/20 backdrop-blur-lg rounded-3xl p-5 flex-row items-center">
-                <View className="relative">
-                  <Image
-                    source={avatarSource}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: 20,
-                      borderWidth: 3,
-                      borderColor: 'white',
-                    }}
-                  />
-                  <View className="absolute bottom-0 right-0 w-5 h-5 bg-green-400 rounded-full border-2 border-white" />
-                </View>
-                
-                <View className="ml-4 flex-1">
-                  <Text className="text-xl font-bold text-white">
-                    {profile?.username || 'User'}
-                  </Text>
-                  <View className="flex-row items-center mt-1">
-                    <View className="w-2 h-2 bg-green-400 rounded-full mr-2" />
-                    <Text className="text-sm text-white/90 font-medium">Online</Text>
-                  </View>
-                </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View>
+                <Avatar.Image
+                  size={64}
+                  source={avatarSource}
+                  style={{ backgroundColor: theme.colors.surface }}
+                />
+                <Badge
+                  visible
+                  size={14}
+                  style={{
+                    position: 'absolute',
+                    right: 2,
+                    bottom: 2,
+                    backgroundColor: theme.colors.primary,
+                  }}
+                />
               </View>
-            </View>
-          </LinearGradient>
 
-          <View className="mt-6">
-            <View className="flex-row items-center justify-between px-6 mb-4">
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-                Friends
-              </Text>
-              {friends.length > 0 && (
-                <Text className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
-                  {friends.length} friends
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text variant="titleLarge" style={{ fontWeight: '700' }}>
+                  {profile?.username || 'User'}
                 </Text>
-              )}
-            </View>
-
-            {loading ? (
-              <View className="px-6 py-8">
-                <ActivityIndicator size="large" color="#6366f1" />
+                <Text variant="bodyMedium" style={{ color: theme.colors.onPrimaryContainer, marginTop: 2 }}>
+                  Online
+                </Text>
               </View>
-            ) : friends.length === 0 ? (
-              <View className="px-6 py-8 items-center">
-                <Ionicons name="people-outline" size={48} color="#9CA3AF" />
-                <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+
+              <IconButton
+                icon="cog-outline"
+                onPress={() => router.push('/(tabs)/more')}
+                iconColor={theme.colors.onPrimaryContainer}
+              />
+            </View>
+          </Surface>
+
+          {/* Friends */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 18, marginBottom: 10 }}>
+            <Text variant="titleLarge" style={{ fontWeight: '700' }}>
+              Friends
+            </Text>
+            <View style={{ flex: 1 }} />
+            <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+              {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+            </Text>
+          </View>
+
+          {loading ? (
+            <Surface style={{ borderRadius: 16, padding: 16, elevation: 0, backgroundColor: theme.colors.surface }}>
+              <ActivityIndicator animating size="large" color={theme.colors.primary} />
+            </Surface>
+          ) : friends.length === 0 ? (
+            <Surface style={{ borderRadius: 16, padding: 16, elevation: 0, backgroundColor: theme.colors.surface }}>
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <Ionicons name="people-outline" size={42} color={theme.colors.onSurfaceVariant} />
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
                   No friends yet. Start connecting with others!
                 </Text>
               </View>
-            ) : (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                className="px-6"
-                contentContainerStyle={{ gap: 12 }}
-              >
-                {friends.map((friend) => (
-                  <TouchableOpacity
-                    key={friend.id}
-                    onPress={() => handleFriendPress(friend.id, friend.username)}
-                    className="items-center"
-                    style={{ width: 80 }}
+            </Surface>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: FRIEND_GAP,
+                paddingVertical: 4,
+                // If we have only a few friends, center the row within the available width.
+                flexGrow: friends.length <= FRIENDS_PER_VIEW ? 1 : 0,
+                justifyContent: friends.length <= FRIENDS_PER_VIEW ? 'center' : 'flex-start',
+              }}
+            >
+              {friends.map((friend) => (
+                <TouchableOpacity
+                  key={friend.id}
+                  onPress={() => handleFriendPress(friend.id, friend.username)}
+                  activeOpacity={0.7}
+                >
+                  <Surface
+                    style={{
+                      width: friendCardWidth,
+                      borderRadius: 18,
+                      paddingVertical: 12,
+                      paddingHorizontal: 10,
+                      alignItems: 'center',
+                      backgroundColor: theme.colors.surface,
+                      elevation: 1,
+                    }}
                   >
-                    <View className="relative">
-                      <Image
+                    <View>
+                      <Avatar.Image
+                        size={56}
                         source={{ uri: getGravatarUrl(friend.email) }}
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 20,
-                          borderWidth: 2,
-                          borderColor: friend.status === 'online' ? '#22c55e' : '#e5e7eb',
-                        }}
+                        style={{ backgroundColor: theme.colors.surfaceVariant }}
                       />
                       {friend.status === 'online' && (
-                        <View className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-950" />
+                        <Badge
+                          visible
+                          size={12}
+                          style={{
+                            position: 'absolute',
+                            right: 2,
+                            bottom: 2,
+                            backgroundColor: '#22c55e',
+                          }}
+                        />
                       )}
                     </View>
-                    <Text 
-                      className="text-sm font-medium text-gray-900 dark:text-white mt-2 text-center"
+                    <Text
+                      variant="labelMedium"
                       numberOfLines={1}
+                      style={{ marginTop: 8, fontWeight: '600', textAlign: 'center' }}
                     >
                       {friend.username.split(' ')[0]}
                     </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
+                  </Surface>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Feed */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 10 }}>
+            <Text variant="titleLarge" style={{ fontWeight: '700' }}>
+              Feed
+            </Text>
+            <View style={{ flex: 1 }} />
+            <IconButton icon="view-grid-outline" onPress={() => {}} />
           </View>
 
-          <View className="mt-8 px-6">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-                Feed
-              </Text>
-              <Ionicons name="grid-outline" size={24} color="#6366f1" />
-            </View>
-
-            {mockMediaFeed.map((media) => (
-              <View key={media.id} className="mb-6 bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm">
-                <View className="flex-row items-center p-4">
-                  <Image
-                    source={{ uri: getGravatarUrl(media.username) }}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                    }}
-                  />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                      {media.username}
-                    </Text>
-                    <Text className="text-sm text-gray-500 dark:text-gray-400">
-                      2 hours ago
-                    </Text>
-                  </View>
-                  <Ionicons name="ellipsis-horizontal" size={24} color="#9CA3AF" />
-                </View>
-
-                <Image
-                  source={{ uri: media.url }}
-                  style={{
-                    width: width - 48,
-                    height: (width - 48) * 0.75,
-                  }}
-                  contentFit="cover"
-                />
-
-                <View className="p-4">
-                  <View className="flex-row items-center gap-4 mb-3">
-                    <TouchableOpacity className="flex-row items-center gap-1">
-                      <Ionicons name="heart-outline" size={26} color="#ef4444" />
-                      <Text className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {media.likes}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity>
-                      <Ionicons name="chatbubble-outline" size={24} color="#6366f1" />
-                    </TouchableOpacity>
-                    <TouchableOpacity>
-                      <Ionicons name="paper-plane-outline" size={24} color="#8b5cf6" />
-                    </TouchableOpacity>
-                    <View className="flex-1" />
-                    <TouchableOpacity>
-                      <Ionicons name="bookmark-outline" size={24} color="#d946ef" />
-                    </TouchableOpacity>
-                  </View>
-                  <Text className="text-gray-900 dark:text-white">
-                    <Text className="font-semibold">{media.username}</Text>
-                    {' '}
-                    {media.caption}
-                  </Text>
-                </View>
+          {feedLoading ? (
+            <Surface style={{ borderRadius: 16, padding: 16, elevation: 0, backgroundColor: theme.colors.surface }}>
+              <ActivityIndicator animating size="large" color={theme.colors.primary} />
+            </Surface>
+          ) : feedPosts.length === 0 ? (
+            <Surface style={{ borderRadius: 16, padding: 16, elevation: 0, backgroundColor: theme.colors.surface }}>
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <Ionicons name="images-outline" size={42} color={theme.colors.onSurfaceVariant} />
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
+                  No posts yet.
+                </Text>
               </View>
-            ))}
-          </View>
+            </Surface>
+          ) : (
+            feedPosts.map((post) => {
+              const sortedImages = [...(post.post_images ?? [])].sort(
+                (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
+              );
+              const firstImage = sortedImages[0]?.image_url;
+              const username = post.profiles?.username || 'User';
+              const avatarEmailOrName = post.profiles?.email || username;
+
+              return (
+            <Card
+              key={post.id}
+              onPress={() =>
+                router.push({
+                  pathname: '/posts/[id]',
+                  params: { id: post.id },
+                })
+              }
+              style={{
+                borderRadius: 20,
+                backgroundColor: theme.colors.surface,
+                marginBottom: 14,
+              }}
+              mode="elevated"
+            >
+              <Card.Content style={{ paddingTop: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Avatar.Image
+                    size={40}
+                    source={{ uri: getGravatarUrl(avatarEmailOrName) }}
+                    style={{ backgroundColor: theme.colors.surfaceVariant }}
+                  />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text variant="titleMedium" style={{ fontWeight: '700' }}>
+                      {username}
+                    </Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {formatTimeAgo(post.created_at)}
+                    </Text>
+                  </View>
+                  <IconButton icon="dots-horizontal" onPress={() => {}} />
+                </View>
+              </Card.Content>
+
+              {/* Image (clip corners via wrapper View, not Card overflow) */}
+              {firstImage ? (
+                <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+                  <View style={{ borderRadius: 16, overflow: 'hidden' }}>
+                    <Image
+                      source={{ uri: firstImage }}
+                      style={{ width: '100%', height: 240 }}
+                      contentFit="cover"
+                    />
+                  </View>
+                </View>
+              ) : null}
+
+              <Card.Content style={{ paddingTop: 10, paddingBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <IconButton icon="heart-outline" onPress={() => {}} />
+                  <Text variant="labelLarge" style={{ marginLeft: -8, marginRight: 8 }}>
+                    0
+                  </Text>
+                  <IconButton icon="comment-outline" onPress={() => {}} />
+                  <IconButton icon="send-outline" onPress={() => {}} />
+                  <View style={{ flex: 1 }} />
+                  <IconButton icon="bookmark-outline" onPress={() => {}} />
+                </View>
+
+                {post.content ? (
+                  <Text variant="bodyMedium">
+                    <Text style={{ fontWeight: '700' }}>{username} </Text>
+                    {post.content}
+                  </Text>
+                ) : null}
+              </Card.Content>
+            </Card>
+              );
+            })
+          )}
         </ScrollView>
       </SafeAreaView>
     </SwipeBetweenTabs>

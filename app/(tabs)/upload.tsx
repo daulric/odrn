@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Dimensions, ScrollView, TouchableOpacity, View } from "react-native";
 import { Button, Surface, Text, TextInput, useTheme } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window")
 
@@ -22,6 +22,7 @@ export default function UploadScreen() {
   const [caption, setCaption] = useState("")
   const [uploading, setUploading] = useState(false)
   const theme = useTheme()
+  const insets = useSafeAreaInsets()
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -154,14 +155,15 @@ export default function UploadScreen() {
 
   return (
     <SwipeBetweenTabs current="upload">
-      <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }}>
+      {/* Avoid double top inset: we handle top safe-area inside the gradient header for a cleaner look. */}
+      <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={["left", "right", "bottom"]}>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Modern gradient header */}
           <LinearGradient
             colors={["#8b5cf6", "#6366f1", "#3b82f6"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 }}
+            style={{ paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: 40 }}
           >
             <Text variant="headlineLarge" style={{ color: 'white', fontWeight: '700', marginBottom: 6 }}>
               Create Post

@@ -5,9 +5,9 @@ import { Tabs, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, TouchableWithoutFeedback, View } from 'react-native';
 import { Button, List, Surface, Text, useTheme } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -16,6 +16,9 @@ export default function TabLayout() {
   const { unreadCount, signOut } = useAuth();
   const [isLogoutMenuVisible, setIsLogoutMenuVisible] = useState(false);
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  // Use an explicit width + alignSelf center for a truly centered floating bar.
+  const tabBarWidth = '90%';
 
   const handleLogout = async () => {
     setIsLogoutMenuVisible(false);
@@ -45,10 +48,36 @@ export default function TabLayout() {
       <Tabs
         initialRouteName="index"
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
           headerShown: false,
           tabBarButton: HapticTab,
           tabBarShowLabel: false,
+          tabBarHideOnKeyboard: true,
+          tabBarStyle: {
+            position: 'absolute',
+            justifyContent: 'center',
+            alignItems: 'center',
+            left: 0,
+            right: 0,
+            marginHorizontal: '5%',
+            bottom: Math.max(insets.bottom - 20, 12),
+            height: 60,
+            borderRadius: 32,
+            backgroundColor: (theme.colors as any).elevation?.level2 ?? theme.colors.surface,
+            borderWidth: 1,
+            borderColor: theme.colors.outlineVariant,
+            paddingHorizontal: 10,
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.12,
+            shadowRadius: 40,
+            shadowOffset: { width: 0, height: 6 },
+          },
+          tabBarItemStyle: {
+            borderRadius: 16,
+            marginVertical: 8,
+          },
         }}>
         <Tabs.Screen
           name="index"
