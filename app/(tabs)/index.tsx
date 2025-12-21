@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import CryptoJS from 'crypto-js';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { AppState, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Dimensions, RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { ActivityIndicator, Appbar, Avatar, Badge, Card, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -37,6 +37,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const appState = useRef(AppState.currentState);
   const FRIEND_GAP = 12;
   const PAGE_HORIZONTAL_PADDING = 16;
@@ -143,60 +144,58 @@ export default function HomeScreen() {
   }, [user]);
 
   // Fetch friends and determine online status
-  useEffect(() => {
-    const fetchFriends = async () => {
-      if (!user) return;
+  const fetchFriends = useCallback(async () => {
+    if (!user) return;
 
-      try {
-        const { data: friendships, error } = await supabase
-          .from('friends')
-          .select('user_id, friend_id')
-          .eq('status', 'accepted')
-          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+    setLoading(true);
+    try {
+      const { data: friendships, error } = await supabase
+        .from('friends')
+        .select('user_id, friend_id')
+        .eq('status', 'accepted')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
 
-        if (error) {
-          console.error('Error fetching friends:', error);
-          return;
-        }
-
-        if (!friendships || friendships.length === 0) {
-          setFriends([]);
-          setLoading(false);
-          return;
-        }
-
-        const friendIds = friendships.map((f: any) => 
-          f.user_id === user.id ? f.friend_id : f.user_id
-        );
-
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username, email, is_online, last_seen')
-          .in('id', friendIds);
-
-        if (profilesError) {
-          console.error('Error fetching friend profiles:', profilesError);
-          return;
-        }
-
-        if (profiles) {
-          const formattedFriends: Friend[] = profiles.map((p: any) => ({
-            id: p.id,
-            username: p.username || 'User',
-            email: p.email || '',
-            status: isUserOnline(p.is_online, p.last_seen) ? 'online' : 'offline',
-            last_seen: p.last_seen,
-          }));
-
-          setFriends(formattedFriends);
-        }
-      } catch (error) {
-        console.error('Error in fetchFriends:', error);
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error('Error fetching friends:', error);
+        return;
       }
-    };
 
+      if (!friendships || friendships.length === 0) {
+        setFriends([]);
+        return;
+      }
+
+      const friendIds = friendships.map((f: any) => (f.user_id === user.id ? f.friend_id : f.user_id));
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, email, is_online, last_seen')
+        .in('id', friendIds);
+
+      if (profilesError) {
+        console.error('Error fetching friend profiles:', profilesError);
+        return;
+      }
+
+      if (profiles) {
+        const formattedFriends: Friend[] = profiles.map((p: any) => ({
+          id: p.id,
+          username: p.username || 'User',
+          email: p.email || '',
+          status: isUserOnline(p.is_online, p.last_seen) ? 'online' : 'offline',
+          last_seen: p.last_seen,
+        }));
+
+        setFriends(formattedFriends);
+      }
+    } catch (error) {
+      console.error('Error in fetchFriends:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
     fetchFriends();
 
     // Check for stale online statuses every 30 seconds
@@ -241,46 +240,55 @@ export default function HomeScreen() {
       clearInterval(staleCheckInterval);
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, fetchFriends]);
 
   // Fetch feed posts
-  useEffect(() => {
-    const fetchFeed = async () => {
-      setFeedLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('posts')
-          .select(
-            `
-            id,
-            userid,
-            content,
-            created_at,
-            post_images (
-              image_url,
-              order_index
-            ),
-            profiles (
-              username,
-              email
-            )
+  const fetchFeed = useCallback(async () => {
+    setFeedLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(
           `
+          id,
+          userid,
+          content,
+          created_at,
+          post_images (
+            image_url,
+            order_index
+          ),
+          profiles (
+            username,
+            email
           )
-          .order('created_at', { ascending: false })
-          .limit(25);
+        `
+        )
+        .order('created_at', { ascending: false })
+        .limit(25);
 
-        if (error) throw error;
-        setFeedPosts((data as any) ?? []);
-      } catch (e) {
-        console.error('Error fetching feed:', e);
-        setFeedPosts([]);
-      } finally {
-        setFeedLoading(false);
-      }
-    };
-
-    fetchFeed();
+      if (error) throw error;
+      setFeedPosts((data as any) ?? []);
+    } catch (e) {
+      console.error('Error fetching feed:', e);
+      setFeedPosts([]);
+    } finally {
+      setFeedLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchFriends(), fetchFeed()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchFeed, fetchFriends]);
 
   const handleFriendPress = (friendId: string, username: string) => {
     router.push(`/chat/${friendId}?username=${username}`);
@@ -299,6 +307,14 @@ export default function HomeScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
         >
           {/* Profile / status card */}
           <Surface
