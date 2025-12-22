@@ -403,7 +403,7 @@ export default function CallScreen() {
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
                   <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>{statusLabel}</Text>
                   <Text style={{ color: '#bbb', marginTop: 8, fontSize: 12, textAlign: 'center' }}>
-                    status={call.status} • webrtc={connectionState}
+                    Status: {String(call.status).charAt(0).toUpperCase() + String(call.status).slice(1)}
                   </Text>
                 </View>
               )}

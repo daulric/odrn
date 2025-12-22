@@ -1,11 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { createOutgoingCall } from "@/lib/calling/signaling"
+import { isCallingSupported } from "@/lib/calling/isCallingSupported"
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native"
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native"
 import { IconButton, Surface, Text, TextInput, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -28,6 +29,7 @@ export default function ChatScreen() {
   const [startingCall, setStartingCall] = useState(false)
   const scrollViewRef = useRef<ScrollView>(null)
   const theme = useTheme()
+  const callingSupported = isCallingSupported()
 
   // <CHANGE> Helper function to scroll to bottom
   const scrollToBottom = () => {
@@ -202,13 +204,18 @@ export default function ChatScreen() {
           headerBackTitle: "Return",
           title: (username as string) || "Chat",
           headerRight: () => (
-            <IconButton
-              icon="phone"
-              disabled={!user || !receiverId || startingCall}
+            <Pressable
+              disabled={!callingSupported || !user || !receiverId || startingCall}
+              hitSlop={10}
               onPress={async () => {
+                if (!callingSupported) {
+                  Alert.alert('Calling unavailable', 'Calling requires a development build (not Expo Go).')
+                  return
+                }
                 if (!user || !receiverId) return
                 try {
                   setStartingCall(true)
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                   const call = await createOutgoingCall({ callerId: user.id, calleeId: receiverId })
                   router.push(`/call/${call.id}`)
                 } catch (e: any) {
@@ -218,7 +225,27 @@ export default function ChatScreen() {
                   setStartingCall(false)
                 }
               }}
-            />
+              style={({ pressed }) => {
+                return {
+                  marginRight: 12,
+                  width: 36,
+                  height: 36,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  alignSelf: 'center',
+                  backgroundColor: 'transparent',
+                  opacity: (!callingSupported || !user || !receiverId || startingCall ? 0.45 : 1) * (pressed ? 0.6 : 1),
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Call"
+            >
+              {startingCall ? (
+                <ActivityIndicator size="small" color={theme.colors.onSurface} />
+              ) : (
+                <Ionicons name="call-outline" size={18} color={theme.colors.onSurface} style={{ transform: [{ translateX: 1 }] }} />
+              )}
+            </Pressable>
           ),
         }}
       />

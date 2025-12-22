@@ -2,14 +2,17 @@ import '@/global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MD3DarkTheme, MD3LightTheme, Provider as PaperProvider } from 'react-native-paper';
-import { subscribeToIncomingCalls } from '@/lib/calling/signaling';
+import { acceptCall, subscribeToIncomingCalls } from '@/lib/calling/signaling';
+import type { CallRow } from '@/lib/calling/types';
+import { supabase } from '@/lib/supabase';
+import { isCallingSupported } from '@/lib/calling/isCallingSupported';
+import { Button, Dialog, MD3DarkTheme, MD3LightTheme, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
 
 function RootLayoutNav() {
   const { session, profile, loading } = useAuth();
@@ -17,11 +20,16 @@ function RootLayoutNav() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const lastIncomingCallIdRef = useRef<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState<CallRow | null>(null);
+  const [incomingVisible, setIncomingVisible] = useState(false);
+  const [incomingCallerName, setIncomingCallerName] = useState<string>('Someone');
+  const callingSupported = isCallingSupported();
+
+  const currentSegment = useMemo(() => String(segments[0] ?? ''), [segments]);
 
   useEffect(() => {
     if (loading) return;
 
-    const currentSegment = String(segments[0] ?? '');
     const inAuthGroup = currentSegment === 'auth';
     const inCreateUsernameGroup = currentSegment === 'create-username';
     const inTabsGroup = currentSegment === '(tabs)';
@@ -45,6 +53,7 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
     if (!session?.user?.id) return;
+    if (!callingSupported) return;
 
     const userId = session.user.id;
 
@@ -56,15 +65,35 @@ function RootLayoutNav() {
         lastIncomingCallIdRef.current = call.id;
 
         // If we’re already on a call screen, ignore.
-        const currentSegment = String(segments[0] ?? '');
         if (currentSegment === 'call') return;
 
-        router.push(`/call/${call.id}`);
+        setIncomingCall(call);
+        setIncomingVisible(true);
+
+        // Best-effort fetch caller name for the popup
+        void (async () => {
+          try {
+            const { data } = await supabase.from('profiles').select('username').eq('id', call.caller_id).maybeSingle();
+            const name = (data as any)?.username;
+            setIncomingCallerName(name || 'Someone');
+          } catch {
+            setIncomingCallerName('Someone');
+          }
+        })();
+      },
+      onUpdate: (call) => {
+        if (!incomingCall) return;
+        if (call.id !== incomingCall.id) return;
+        // If call no longer ringing, close popup.
+        if (call.status !== 'ringing') {
+          setIncomingVisible(false);
+          setIncomingCall(null);
+        }
       },
     });
 
     return () => unsubscribe();
-  }, [loading, session?.user?.id, router, segments]);
+  }, [loading, session?.user?.id, router, currentSegment, incomingCall, callingSupported]);
 
   if (loading) {
     return (
@@ -80,6 +109,50 @@ function RootLayoutNav() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <PaperProvider theme={paperTheme}>
+          <Portal>
+            <Dialog visible={incomingVisible} dismissable={false}>
+              <Dialog.Title>Incoming call</Dialog.Title>
+              <Dialog.Content>
+                <Text>{incomingCallerName} is calling you.</Text>
+              </Dialog.Content>
+              <Dialog.Actions>
+                <Button
+                  onPress={async () => {
+                    if (!incomingCall) return;
+                    try {
+                      // Decline by updating status server-side; DB trigger enforces callee-only decline.
+                      await (supabase as any).from('calls').update({ status: 'declined' }).eq('id', incomingCall.id);
+                    } catch (e) {
+                      console.error('Failed to decline call:', e);
+                    } finally {
+                      setIncomingVisible(false);
+                      setIncomingCall(null);
+                    }
+                  }}
+                >
+                  Decline
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={async () => {
+                    if (!incomingCall) return;
+                    try {
+                      // Accept server-side so the caller sees the state transition immediately.
+                      await acceptCall(incomingCall.id);
+                    } catch (e) {
+                      console.error('Failed to accept call:', e);
+                      // Still navigate so the user can try accepting from the call screen.
+                    } finally {
+                      setIncomingVisible(false);
+                      router.push(`/call/${incomingCall.id}`);
+                    }
+                  }}
+                >
+                  Accept
+                </Button>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
           <Stack initialRouteName="updates-screen">
             <Stack.Screen name="updates-screen" options={{ headerShown: false }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />

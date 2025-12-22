@@ -281,6 +281,36 @@ with check (
 
 -- No UPDATE/DELETE policies on call_signals: append-only log.
 
+-- Supabase Realtime: ensure these tables are included in the `supabase_realtime` publication
+-- so `postgres_changes` subscriptions receive events.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1
+      from pg_publication_rel pr
+      join pg_class c on c.oid = pr.prrelid
+      join pg_namespace n on n.oid = c.relnamespace
+      join pg_publication p on p.oid = pr.prpubid
+      where p.pubname = 'supabase_realtime' and n.nspname = 'ordn' and c.relname = 'calls'
+    ) then
+      alter publication supabase_realtime add table ordn.calls;
+    end if;
+
+    if not exists (
+      select 1
+      from pg_publication_rel pr
+      join pg_class c on c.oid = pr.prrelid
+      join pg_namespace n on n.oid = c.relnamespace
+      join pg_publication p on p.oid = pr.prpubid
+      where p.pubname = 'supabase_realtime' and n.nspname = 'ordn' and c.relname = 'call_signals'
+    ) then
+      alter publication supabase_realtime add table ordn.call_signals;
+    end if;
+  end if;
+end
+$$;
+
 commit;
 
 

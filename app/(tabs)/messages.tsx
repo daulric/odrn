@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { createOutgoingCall } from '@/lib/calling/signaling';
+import { isCallingSupported } from '@/lib/calling/isCallingSupported';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -45,6 +46,7 @@ interface Friend {
 export default function MessagesScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const callingSupported = isCallingSupported();
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'people'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -286,6 +288,10 @@ export default function MessagesScreen() {
 
   const handleCall = async (otherUserId: string) => {
     if (!user) return;
+    if (!callingSupported) {
+      Alert.alert('Calling unavailable', 'Calling requires a development build (not Expo Go).');
+      return;
+    }
 
     try {
       setStartingCallUserId(otherUserId);
@@ -373,12 +379,14 @@ export default function MessagesScreen() {
                     e.stopPropagation();
                     void handleCall(item.friend.id);
                   }}
-                  disabled={startingCallUserId === item.friend.id}
-                  className="bg-blue-100 dark:bg-blue-900 px-3 py-1.5 rounded-full flex-row items-center"
+                  disabled={!callingSupported || startingCallUserId === item.friend.id}
+                  className={`px-3 py-1.5 rounded-full flex-row items-center ${
+                    callingSupported ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-200 dark:bg-gray-800'
+                  }`}
                 >
-                  <Ionicons name="call-outline" size={16} color={activeTab === 'friends' ? '#1d4ed8' : '#93c5fd'} style={{ marginRight: 4 }} />
-                  <Text className="text-blue-700 dark:text-blue-300 font-medium text-xs">
-                    {startingCallUserId === item.friend.id ? 'Calling…' : 'Call'}
+                  <Ionicons name="call-outline" size={16} color={callingSupported ? '#1d4ed8' : '#6b7280'} style={{ marginRight: 4 }} />
+                  <Text className={`${callingSupported ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'} font-medium text-xs`}>
+                    {!callingSupported ? 'Dev build' : startingCallUserId === item.friend.id ? 'Calling…' : 'Call'}
                   </Text>
                 </TouchableOpacity>
 
