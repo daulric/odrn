@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { createOutgoingCall } from '@/lib/calling/signaling';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -48,6 +49,7 @@ export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [startingCallUserId, setStartingCallUserId] = useState<string | null>(null);
 
   // Data states
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -282,6 +284,22 @@ export default function MessagesScreen() {
     router.push(`/chat/${userId}?username=${username}`);
   };
 
+  const handleCall = async (otherUserId: string) => {
+    if (!user) return;
+
+    try {
+      setStartingCallUserId(otherUserId);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+      const call = await createOutgoingCall({ callerId: user.id, calleeId: otherUserId });
+      router.push(`/call/${call.id}`);
+    } catch (e) {
+      console.error('Failed to start call:', e);
+      Alert.alert('Cannot start call', 'You can only call accepted friends.');
+    } finally {
+      setStartingCallUserId(null);
+    }
+  };
+
   const TabButton = ({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: () => void }) => (
     <TouchableOpacity 
       onPress={() => {
@@ -318,7 +336,7 @@ export default function MessagesScreen() {
           ListEmptyComponent={
             <View className="p-8 items-center">
               <Text className="text-gray-500 dark:text-gray-400 text-center">
-                No friends yet. Go to 'People' to find someone!
+                No friends yet. Go to People to find someone!
               </Text>
             </View>
           }
@@ -349,11 +367,27 @@ export default function MessagesScreen() {
                   </Text>
                 </View>
               ) : null}
-              <View className="bg-green-100 dark:bg-green-900 px-3 py-1.5 rounded-full flex-row items-center">
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color={activeTab === 'friends' ? '#15803d' : '#86efac'} style={{ marginRight: 4 }} />
-                <Text className="text-green-700 dark:text-green-300 font-medium text-xs">
-                  Message
-                </Text>
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    void handleCall(item.friend.id);
+                  }}
+                  disabled={startingCallUserId === item.friend.id}
+                  className="bg-blue-100 dark:bg-blue-900 px-3 py-1.5 rounded-full flex-row items-center"
+                >
+                  <Ionicons name="call-outline" size={16} color={activeTab === 'friends' ? '#1d4ed8' : '#93c5fd'} style={{ marginRight: 4 }} />
+                  <Text className="text-blue-700 dark:text-blue-300 font-medium text-xs">
+                    {startingCallUserId === item.friend.id ? 'Calling…' : 'Call'}
+                  </Text>
+                </TouchableOpacity>
+
+                <View className="bg-green-100 dark:bg-green-900 px-3 py-1.5 rounded-full flex-row items-center">
+                  <Ionicons name="chatbubble-ellipses-outline" size={16} color={activeTab === 'friends' ? '#15803d' : '#86efac'} style={{ marginRight: 4 }} />
+                  <Text className="text-green-700 dark:text-green-300 font-medium text-xs">
+                    Message
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}

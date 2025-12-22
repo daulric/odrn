@@ -9,6 +9,112 @@ export type Json =
 export type Database = {
   ordn: {
     Tables: {
+      call_signals: {
+        Row: {
+          id: string;
+          call_id: string;
+          sender_id: string;
+          recipient_id: string | null;
+          type: 'offer' | 'answer' | 'ice' | 'renegotiate' | 'hangup' | 'control';
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          call_id: string;
+          sender_id: string;
+          recipient_id?: string | null;
+          type: 'offer' | 'answer' | 'ice' | 'renegotiate' | 'hangup' | 'control';
+          payload: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          call_id?: string;
+          sender_id?: string;
+          recipient_id?: string | null;
+          type?: 'offer' | 'answer' | 'ice' | 'renegotiate' | 'hangup' | 'control';
+          payload?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "call_signals_call_id_fkey";
+            columns: ["call_id"];
+            isOneToOne: false;
+            referencedRelation: "calls";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_signals_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "call_signals_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      calls: {
+        Row: {
+          id: string;
+          caller_id: string;
+          callee_id: string;
+          status: 'ringing' | 'accepted' | 'declined' | 'missed' | 'ended' | 'cancelled';
+          created_at: string;
+          updated_at: string;
+          accepted_at: string | null;
+          ended_at: string | null;
+          end_reason: string | null;
+          client_version: string | null;
+        };
+        Insert: {
+          id?: string;
+          caller_id: string;
+          callee_id: string;
+          status?: 'ringing' | 'accepted' | 'declined' | 'missed' | 'ended' | 'cancelled';
+          created_at?: string;
+          updated_at?: string;
+          accepted_at?: string | null;
+          ended_at?: string | null;
+          end_reason?: string | null;
+          client_version?: string | null;
+        };
+        Update: {
+          id?: string;
+          caller_id?: string;
+          callee_id?: string;
+          status?: 'ringing' | 'accepted' | 'declined' | 'missed' | 'ended' | 'cancelled';
+          created_at?: string;
+          updated_at?: string;
+          accepted_at?: string | null;
+          ended_at?: string | null;
+          end_reason?: string | null;
+          client_version?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "calls_caller_id_fkey";
+            columns: ["caller_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "calls_callee_id_fkey";
+            columns: ["callee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       profiles: {
         Row: {
           id: string;

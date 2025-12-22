@@ -1,10 +1,11 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
+import { createOutgoingCall } from "@/lib/calling/signaling"
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native"
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native"
 import { IconButton, Surface, Text, TextInput, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -24,6 +25,7 @@ export default function ChatScreen() {
   const router = useRouter()
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
+  const [startingCall, setStartingCall] = useState(false)
   const scrollViewRef = useRef<ScrollView>(null)
   const theme = useTheme()
 
@@ -199,6 +201,25 @@ export default function ChatScreen() {
         options={{
           headerBackTitle: "Return",
           title: (username as string) || "Chat",
+          headerRight: () => (
+            <IconButton
+              icon="phone"
+              disabled={!user || !receiverId || startingCall}
+              onPress={async () => {
+                if (!user || !receiverId) return
+                try {
+                  setStartingCall(true)
+                  const call = await createOutgoingCall({ callerId: user.id, calleeId: receiverId })
+                  router.push(`/call/${call.id}`)
+                } catch (e: any) {
+                  console.error('Failed to start call:', e)
+                  Alert.alert('Cannot start call', 'You can only call accepted friends.')
+                } finally {
+                  setStartingCall(false)
+                }
+              }}
+            />
+          ),
         }}
       />
       <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={["bottom"]}>

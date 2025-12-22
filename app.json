@@ -13,7 +13,9 @@
       "bundleIdentifier": "com.daulric.odrn",
       "backgroundColor": "#000000", // Add this line
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "We use your microphone for voice calls with friends.",
+        "NSCameraUsageDescription": "We use your camera for video calls with friends."
       }
     },
     "android": {
@@ -25,6 +27,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS", "WAKE_LOCK"],
       "package": "com.daulric.odrn"
     },
     "web": {

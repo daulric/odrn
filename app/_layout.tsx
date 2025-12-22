@@ -2,19 +2,21 @@ import '@/global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MD3DarkTheme, MD3LightTheme, Provider as PaperProvider } from 'react-native-paper';
+import { subscribeToIncomingCalls } from '@/lib/calling/signaling';
 
 function RootLayoutNav() {
   const { session, profile, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const lastIncomingCallIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -38,6 +40,31 @@ function RootLayoutNav() {
     }
     // If logged in with profile, let app/index.tsx handle the redirect to tabs
   }, [session, profile, loading, segments]);
+
+  // Global incoming call listener (routes to call screen when a friend calls you)
+  useEffect(() => {
+    if (loading) return;
+    if (!session?.user?.id) return;
+
+    const userId = session.user.id;
+
+    const unsubscribe = subscribeToIncomingCalls({
+      userId,
+      onIncoming: (call) => {
+        // Avoid double navigation from duplicate events
+        if (lastIncomingCallIdRef.current === call.id) return;
+        lastIncomingCallIdRef.current = call.id;
+
+        // If we’re already on a call screen, ignore.
+        const currentSegment = String(segments[0] ?? '');
+        if (currentSegment === 'call') return;
+
+        router.push(`/call/${call.id}`);
+      },
+    });
+
+    return () => unsubscribe();
+  }, [loading, session?.user?.id, router, segments]);
 
   if (loading) {
     return (
