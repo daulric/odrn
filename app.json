@@ -11,14 +11,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.daulric.odrn",
-      "backgroundColor": "#000000", // Add this line
+      "backgroundColor": "#000000",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "We use your microphone for voice calls with friends.",
-        "NSCameraUsageDescription": "We use your camera for video calls with friends."
+        "NSCameraUsageDescription": "We use your camera for video calls with friends.",
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
+      "googleServicesFile": "./services/google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/icon/logo.png",
@@ -50,7 +52,14 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon/logo.png",
+          "color": "#ffffff"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

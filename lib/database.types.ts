@@ -121,6 +121,7 @@ export type Database = {
           username: string | null;
           email: string | null;
           avatar: string | null;
+          expo_push_token: string | null;
           created_at: string | null;
           is_online: boolean | null;
           last_seen: string | null;
@@ -130,6 +131,7 @@ export type Database = {
           username?: string | null;
           email?: string | null;
           avatar?: string | null;
+          expo_push_token?: string | null;
           created_at?: string | null;
           is_online?: boolean | null;
           last_seen?: string | null;
@@ -139,6 +141,7 @@ export type Database = {
           username?: string | null;
           email?: string | null;
           avatar?: string | null;
+          expo_push_token?: string | null;
           created_at?: string | null;
           is_online?: boolean | null;
           last_seen?: string | null;

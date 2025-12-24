@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { CallRow, CallSignalRow, CallSignalType, CallStatus } from './types';
+import { sendIncomingCallPush } from './push';
 
 type Unsubscribe = () => void;
 
@@ -29,7 +30,14 @@ export async function createOutgoingCall(params: {
     .select('*')
     .single();
 
-  if (!error) return normalizeCall(data);
+  if (!error) {
+    const call = normalizeCall(data);
+    // Fire-and-forget push as an offline fallback.
+    void sendIncomingCallPush({ callId: call.id, callerId, calleeId }).catch((e) => {
+      console.warn('Failed to send incoming call push:', e);
+    });
+    return call;
+  }
 
   // If there's already an active call between these two users, return it instead of failing.
   // This is enforced by the partial unique index: calls_unique_active_pair_idx.

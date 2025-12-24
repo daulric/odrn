@@ -8,10 +8,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { acceptCall, subscribeToIncomingCalls } from '@/lib/calling/signaling';
-import type { CallRow } from '@/lib/calling/types';
-import { supabase } from '@/lib/supabase';
 import { isCallingSupported } from '@/lib/calling/isCallingSupported';
+import { acceptCall, declineCall, subscribeToIncomingCalls } from '@/lib/calling/signaling';
+import type { CallRow } from '@/lib/calling/types';
+import {
+  addNotificationResponseReceivedListener,
+  getLastNotificationResponseAsync,
+  initCallNotificationChannelsAndCategories,
+  registerForPushNotificationsAsync,
+} from "@/lib/notifications/push";
+import { supabase } from '@/lib/supabase';
 import { Button, Dialog, MD3DarkTheme, MD3LightTheme, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
 
 function RootLayoutNav() {
@@ -48,6 +54,67 @@ function RootLayoutNav() {
     }
     // If logged in with profile, let app/index.tsx handle the redirect to tabs
   }, [session, profile, loading, segments]);
+
+  // Push notifications: setup channels/categories, register token, and handle Accept/Decline actions.
+  useEffect(() => {
+    void initCallNotificationChannelsAndCategories();
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session?.user?.id) return;
+
+    void (async () => {
+      const token = await registerForPushNotificationsAsync();
+      if (!token) return;
+      try {
+        // Requires a `profiles.expo_push_token` column in Supabase (see note in README/SQL).
+        await (supabase as any).from("profiles").update({ expo_push_token: token }).eq("id", session.user.id);
+      } catch (e) {
+        // If the column/table doesn't exist yet, don't crash the app.
+        console.warn("Failed to save expo push token:", e);
+      }
+    })();
+  }, [loading, session?.user?.id]);
+
+  useEffect(() => {
+    const handleResponse = async (response: any) => {
+      const action = response.actionIdentifier;
+      const data = (response.notification.request.content.data ?? {}) as any;
+      const callId = typeof data.callId === "string" ? data.callId : undefined;
+      const type = data.type;
+
+      if (type !== "incoming_call" || !callId) return;
+
+      try {
+        if (action === "DECLINE_CALL") {
+          await declineCall(callId);
+          return;
+        }
+
+        // ACCEPT_CALL or default tap both navigate to the call screen.
+        if (action === "ACCEPT_CALL") {
+          await acceptCall(callId);
+        }
+      } catch (e) {
+        console.warn("Notification call action failed:", e);
+      } finally {
+        // Always navigate so user can continue from the call screen.
+        router.push(`/call/${callId}`);
+      }
+    };
+
+    const sub = addNotificationResponseReceivedListener((r) => {
+      void handleResponse(r as any);
+    });
+
+    // Handle cold-start from a notification tap.
+    void getLastNotificationResponseAsync().then((r) => {
+      if (r) void handleResponse(r);
+    });
+
+    return () => sub.remove();
+  }, [router]);
 
   // Global incoming call listener (routes to call screen when a friend calls you)
   useEffect(() => {
