@@ -1,0 +1,77 @@
+name: EAS Build
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+
+jobs:
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js (for EAS CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Determine build parameters
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            PLATFORM="${{ github.event.inputs.platform }}"
+            PROFILE="${{ github.event.inputs.profile }}"
+          else
+            PLATFORM="all"
+            PROFILE="preview"
+          fi
+          echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
+          echo "profile=$PROFILE" >> $GITHUB_OUTPUT
+
+      - name: Build Android
+        if: steps.params.outputs.platform == 'all' || steps.params.outputs.platform == 'android'
+        run: eas build --platform android --profile ${{ steps.params.outputs.profile }} --non-interactive --no-wait
+
+      - name: Build iOS
+        if: steps.params.outputs.platform == 'all' || steps.params.outputs.platform == 'ios'
+        run: eas build --platform ios --profile ${{ steps.params.outputs.profile }} --non-interactive --no-wait
+

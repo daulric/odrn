@@ -1,0 +1,76 @@
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview:
+    name: Create Preview Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js (for EAS CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Create preview update
+        id: update
+        run: |
+          UPDATE_OUTPUT=$(eas update --branch pr-${{ github.event.pull_request.number }} --message "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" --non-interactive --json)
+          echo "update_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$UPDATE_OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const updateOutput = `${{ steps.update.outputs.update_output }}`;
+            let updates;
+            try {
+              updates = JSON.parse(updateOutput);
+            } catch (e) {
+              console.log('Could not parse update output');
+              return;
+            }
+            
+            const body = `## 📱 Preview Update Published
+            
+            | Platform | Update ID |
+            |----------|-----------|
+            ${updates.map(u => `| ${u.platform} | \`${u.id}\` |`).join('\n')}
+            
+            **Branch:** \`pr-${{ github.event.pull_request.number }}\`
+            
+            To test this update:
+            1. Open the Expo Go app or your development build
+            2. Use the QR code from the Expo dashboard
+            3. Or run: \`npx expo start --dev-client\` and select the preview branch
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
