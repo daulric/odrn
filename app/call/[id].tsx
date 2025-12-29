@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useCall } from '@/contexts/CallContext';
 import { acceptCall, cancelCall, declineCall, endCall, getCall, sendSignal, subscribeToCall, subscribeToSignals } from '@/lib/calling/signaling';
 import type { CallRow, CallSignalRow } from '@/lib/calling/types';
 import { WebRTCCallSession } from '@/lib/calling/webrtc';
@@ -7,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import Constants from 'expo-constants';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { AppState, AppStateStatus, View } from 'react-native';
 import InCallManager from 'react-native-incall-manager';
 import { ActivityIndicator, Avatar, IconButton, SegmentedButtons, Surface, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,6 +46,7 @@ export default function CallScreen() {
   const { id } = useLocalSearchParams();
   const callId = Array.isArray(id) ? id[0] : id;
   const { user } = useAuth();
+  const { setActiveCall, clearActiveCall } = useCall();
   const theme = useTheme();
   const router = useRouter();
 
@@ -317,6 +319,29 @@ export default function CallScreen() {
   const remoteUrl = remoteStream?.toURL?.() ?? null;
   const localUrl = localStream?.toURL?.() ?? null;
 
+  // Track active call globally (for floating indicator when navigating away)
+  useEffect(() => {
+    console.log("Call state check:", { mode, status: call?.status, callId, remoteUserId });
+    if (mode === 'active' && call?.status === 'accepted' && callId && remoteUserId) {
+      const remoteName = remoteProfile?.username || 'Call';
+      console.log("Setting active call:", { callId, remoteUserId, remoteName });
+      setActiveCall({
+        id: callId,
+        remoteUserId,
+        remoteName,
+        startedAt: call.accepted_at ? new Date(call.accepted_at) : new Date(),
+      });
+    } else if (call?.status && ['declined', 'cancelled', 'missed', 'ended'].includes(call.status)) {
+      // Clear if call reached terminal state
+      console.log("Clearing active call - terminal state");
+      clearActiveCall();
+    }
+  }, [mode, call?.status, call?.accepted_at, callId, remoteUserId, remoteProfile?.username, setActiveCall, clearActiveCall]);
+
+  // Note: We do NOT clear active call on unmount because the user might navigate
+  // away while still on a call. The active call is only cleared when the call
+  // reaches a terminal state (ended, declined, cancelled, missed).
+
   // Manage in-call audio routing/lifecycle
   useEffect(() => {
     if (isExpoGo) return;
@@ -345,6 +370,87 @@ export default function CallScreen() {
       console.error('Failed to set speaker state:', e);
     }
   }, [speakerEnabled, isExpoGo]);
+
+  // Show notification when app goes to background during active call
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  useEffect(() => {
+    if (isExpoGo) return;
+    if (!callId || call?.status !== 'accepted') return;
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      // App going to background while on active call
+      if (
+        appStateRef.current === 'active' &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        try {
+          const Notifications = await import('expo-notifications');
+          if (Notifications?.scheduleNotificationAsync) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: '📞 Call in progress',
+                body: `You're still on a call with ${remoteProfile?.username || 'someone'}. Tap to return.`,
+                data: { type: 'active_call', callId },
+                sound: false,
+                categoryIdentifier: 'active_call',
+              },
+              trigger: null, // Show immediately
+            });
+          }
+        } catch (e) {
+          console.error('Failed to show call notification:', e);
+        }
+      }
+      
+      // App returning to foreground - dismiss the notification
+      if (
+        appStateRef.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        try {
+          const Notifications = await import('expo-notifications');
+          if (Notifications?.dismissAllNotificationsAsync) {
+            await Notifications.dismissAllNotificationsAsync();
+          }
+        } catch {
+          // ignore
+        }
+      }
+      
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [callId, call?.status, remoteProfile?.username, isExpoGo]);
+
+  // End call when WebRTC connection fails (e.g., other party's app was killed)
+  useEffect(() => {
+    if (!callId || !call || call.status !== 'accepted') return;
+
+    // WebRTC connection states that indicate the peer is gone
+    const terminalStates = ['disconnected', 'failed', 'closed'];
+    
+    if (terminalStates.includes(connectionState)) {
+      console.log(`WebRTC connection ${connectionState}, ending call...`);
+      
+      // Give a short grace period for reconnection (5 seconds)
+      const timeout = setTimeout(async () => {
+        // Re-check if still disconnected
+        if (terminalStates.includes(connectionState)) {
+          try {
+            await endCall(callId);
+            clearActiveCall();
+            router.replace('/(tabs)');
+          } catch (e) {
+            console.error('Failed to end call after disconnection:', e);
+          }
+        }
+      }, 5000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [connectionState, callId, call?.status, clearActiveCall, router]);
 
   const statusLabel =
     mode === 'incoming'

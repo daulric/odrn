@@ -19,6 +19,8 @@ interface Message {
   seen: boolean
 }
 
+import { sendNewMessagePush } from "@/lib/calling/push"
+
 export default function ChatScreen() {
   const { id, username } = useLocalSearchParams()
   const receiverId = Array.isArray(id) ? id[0] : id
@@ -189,6 +191,13 @@ export default function ChatScreen() {
         }
         return [...filtered, data]
       })
+
+      // Fire-and-forget push if recipient is offline
+      void sendNewMessagePush({
+        senderId: user.id,
+        receiverId,
+        messageContent: content,
+      }).catch((e) => console.warn("Failed to send message push:", e))
     }
   }
 

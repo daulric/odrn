@@ -42,6 +42,13 @@ export async function initCallNotificationChannelsAndCategories() {
       vibrationPattern: [0, 250, 250, 250],
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     })
+    await Notifications.setNotificationChannelAsync("messages", {
+      name: "Messages",
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    })
   }
 
   // Interactive actions (Accept / Decline)

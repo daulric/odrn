@@ -7,6 +7,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { CallProvider } from '@/contexts/CallContext';
+import { CallIndicator } from '@/components/CallIndicator';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isCallingSupported } from '@/lib/calling/isCallingSupported';
 import { acceptCall, declineCall, subscribeToIncomingCalls } from '@/lib/calling/signaling';
@@ -65,11 +67,14 @@ function RootLayoutNav() {
     if (!session?.user?.id) return;
 
     void (async () => {
+      console.log("Creating push token...");
       const token = await registerForPushNotificationsAsync();
+      console.log("Push Token:", token);
       if (!token) return;
       try {
         // Requires a `profiles.expo_push_token` column in Supabase (see note in README/SQL).
         await (supabase as any).from("profiles").update({ expo_push_token: token }).eq("id", session.user.id);
+        console.log("Push token saved to Supabase.");
       } catch (e) {
         // If the column/table doesn't exist yet, don't crash the app.
         console.warn("Failed to save expo push token:", e);
@@ -82,25 +87,64 @@ function RootLayoutNav() {
       const action = response.actionIdentifier;
       const data = (response.notification.request.content.data ?? {}) as any;
       const callId = typeof data.callId === "string" ? data.callId : undefined;
+      const senderId = typeof data.senderId === "string" ? data.senderId : undefined;
       const type = data.type;
 
-      if (type !== "incoming_call" || !callId) return;
+      // Handle incoming call notifications
+      if (type === "incoming_call" && callId) {
+        try {
+          if (action === "DECLINE_CALL") {
+            await declineCall(callId);
+            return;
+          }
 
-      try {
-        if (action === "DECLINE_CALL") {
-          await declineCall(callId);
-          return;
+          // ACCEPT_CALL or default tap both navigate to the call screen.
+          if (action === "ACCEPT_CALL") {
+            await acceptCall(callId);
+          }
+        } catch (e) {
+          console.warn("Notification call action failed:", e);
+        } finally {
+          // Ensure tabs are in the stack first (for cold-start), then navigate to call
+          router.replace("/(tabs)");
+          setTimeout(() => {
+            router.push(`/call/${callId}`);
+          }, 100);
         }
+        return;
+      }
 
-        // ACCEPT_CALL or default tap both navigate to the call screen.
-        if (action === "ACCEPT_CALL") {
-          await acceptCall(callId);
+      // Handle new message notifications
+      if (type === "new_message" && senderId) {
+        try {
+          // Fetch sender's username for the chat header
+          const { data: senderProfile } = await supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", senderId)
+            .maybeSingle();
+          const username = (senderProfile as any)?.username || "Chat";
+          
+          // Ensure tabs are in the stack first (for cold-start), then navigate to chat
+          router.replace("/(tabs)/messages");
+          setTimeout(() => {
+            router.push(`/chat/${senderId}?username=${encodeURIComponent(username)}`);
+          }, 100);
+        } catch (e) {
+          console.warn("Failed to navigate to chat:", e);
+          // Fallback: navigate without username
+          router.replace("/(tabs)/messages");
+          setTimeout(() => {
+            router.push(`/chat/${senderId}`);
+          }, 100);
         }
-      } catch (e) {
-        console.warn("Notification call action failed:", e);
-      } finally {
-        // Always navigate so user can continue from the call screen.
+        return;
+      }
+
+      // Handle active call notification (user backgrounded app during call)
+      if (type === "active_call" && callId) {
         router.push(`/call/${callId}`);
+        return;
       }
     };
 
@@ -272,7 +316,10 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <CallProvider>
+        <RootLayoutNav />
+        <CallIndicator />
+      </CallProvider>
     </AuthProvider>
   );
 }
