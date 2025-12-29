@@ -28,7 +28,7 @@ jobs:
 
       # Using Google's OSV-Scanner (supports Bun, no API key needed)
       - name: Run OSV-Scanner
-        uses: google/osv-scanner-action@v2
+        uses: google/osv-scanner-action@v2.1.0
         continue-on-error: true
         with:
           scan-args: |-
