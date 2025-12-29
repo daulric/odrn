@@ -32,12 +32,35 @@ jobs:
           curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
           chmod +x osv-scanner
 
-      - name: Run OSV-Scanner
+      - name: Run OSV-Scanner (dependencies)
         run: ./osv-scanner --lockfile=bun.lock --format=table
+        continue-on-error: true
+
+      - name: Run OSV-Scanner (source code)
+        run: ./osv-scanner --recursive . --format=table
         continue-on-error: true
 
   # Note: CodeQL is handled by GitHub's Default Setup
   # Go to Settings > Code security to configure it
+
+  code-analysis:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/javascript
+            p/typescript
+            p/react
+            p/security-audit
+            p/secrets
+        continue-on-error: true
 
   secrets-scan:
     name: Secrets Scan
