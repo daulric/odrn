@@ -27,13 +27,14 @@ jobs:
         run: bun install --frozen-lockfile
 
       # Using Google's OSV-Scanner (supports Bun, no API key needed)
+      - name: Install OSV-Scanner
+        run: |
+          curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+
       - name: Run OSV-Scanner
-        uses: google/osv-scanner-action@v2.1.0
+        run: ./osv-scanner --lockfile=bun.lock --format=table
         continue-on-error: true
-        with:
-          scan-args: |-
-            --lockfile=bun.lock
-            --format=table
 
   # Note: CodeQL is handled by GitHub's Default Setup
   # Go to Settings > Code security to configure it
