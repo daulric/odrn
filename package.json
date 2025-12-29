@@ -73,5 +73,15 @@
     "prettier-plugin-tailwindcss": "^0.5.14",
     "typescript": "~5.9.3"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-incall-manager",
+          "react-native-webrtc"
+        ]
+      }
+    }
+  },
   "private": true
 }
