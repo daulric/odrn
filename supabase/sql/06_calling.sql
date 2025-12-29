@@ -1,29 +1,22 @@
+-- =============================================================================
+-- 06_calling.sql - Calls and Call Signals Tables
+-- =============================================================================
 -- Friends-only calling feature (P2P WebRTC) for Supabase/Postgres.
--- Schema: ordn
---
--- This file is intended to be run in the Supabase SQL editor.
--- It creates:
+-- This file creates:
 -- - Enums: ordn.call_status, ordn.call_signal_type
 -- - Tables: ordn.calls, ordn.call_signals
--- - Helper: ordn.are_friends(a uuid, b uuid)
 -- - Triggers: updated_at + call state transition enforcement
 -- - RLS policies to enforce friends-only calls and participant-only signaling
+--
+-- Run AFTER: 02_friends.sql (depends on ordn.are_friends function)
+-- =============================================================================
 
 begin;
 
--- Needed for gen_random_uuid()
-create extension if not exists pgcrypto;
-
--- Ensure schema exists (your project already uses `ordn`, this is a safety net).
-do $$
-begin
-  if not exists (select 1 from pg_namespace where nspname = 'ordn') then
-    create schema ordn;
-  end if;
-end
-$$;
-
+-- =============================================================================
 -- Enums (idempotent)
+-- =============================================================================
+
 do $$
 begin
   if not exists (
@@ -64,23 +57,9 @@ begin
 end
 $$;
 
--- Helper to check accepted friendship in either direction.
-create or replace function ordn.are_friends(a uuid, b uuid)
-returns boolean
-language sql
-stable
-as $$
-  select exists (
-    select 1
-    from ordn.friends f
-    where f.status = 'accepted'
-      and (
-        (f.user_id = a and f.friend_id = b)
-        or
-        (f.user_id = b and f.friend_id = a)
-      )
-  );
-$$;
+-- =============================================================================
+-- Helper Functions
+-- =============================================================================
 
 -- updated_at trigger helper
 create or replace function ordn.set_updated_at()
@@ -159,6 +138,10 @@ begin
 end;
 $$;
 
+-- =============================================================================
+-- Tables
+-- =============================================================================
+
 -- Calls table
 create table if not exists ordn.calls (
   id uuid primary key default gen_random_uuid(),
@@ -185,7 +168,10 @@ create table if not exists ordn.call_signals (
   created_at timestamptz not null default now()
 );
 
+-- =============================================================================
 -- Indexes
+-- =============================================================================
+
 create index if not exists calls_callee_status_created_at_idx
   on ordn.calls (callee_id, status, created_at desc);
 
@@ -198,13 +184,16 @@ create index if not exists call_signals_call_created_at_idx
 create index if not exists call_signals_recipient_created_at_idx
   on ordn.call_signals (recipient_id, created_at desc);
 
--- Optional: prevent multiple simultaneous calls between the same pair.
+-- Prevent multiple simultaneous calls between the same pair.
 -- (Allows one active call per pair while ringing/accepted.)
 create unique index if not exists calls_unique_active_pair_idx
   on ordn.calls (least(caller_id, callee_id), greatest(caller_id, callee_id))
   where status in ('ringing'::ordn.call_status, 'accepted'::ordn.call_status);
 
+-- =============================================================================
 -- Triggers
+-- =============================================================================
+
 drop trigger if exists calls_set_updated_at on ordn.calls;
 create trigger calls_set_updated_at
 before update on ordn.calls
@@ -215,7 +204,10 @@ create trigger calls_enforce_state_machine
 before insert or update on ordn.calls
 for each row execute function ordn.enforce_call_state_machine();
 
--- RLS
+-- =============================================================================
+-- Row Level Security
+-- =============================================================================
+
 alter table ordn.calls enable row level security;
 alter table ordn.call_signals enable row level security;
 
@@ -259,7 +251,7 @@ using (
   )
 );
 
--- Call signals: sender must be auth.uid(), sender must be a participant, recipient must be null or a participant
+-- Call signals: sender must be auth.uid(), sender must be a participant
 drop policy if exists call_signals_insert_participants on ordn.call_signals;
 create policy call_signals_insert_participants
 on ordn.call_signals
@@ -281,7 +273,11 @@ with check (
 
 -- No UPDATE/DELETE policies on call_signals: append-only log.
 
--- Supabase Realtime: ensure these tables are included in the `supabase_realtime` publication
+-- =============================================================================
+-- Supabase Realtime
+-- =============================================================================
+
+-- Ensure these tables are included in the `supabase_realtime` publication
 -- so `postgres_changes` subscriptions receive events.
 do $$
 begin
@@ -312,5 +308,4 @@ end
 $$;
 
 commit;
-
 
