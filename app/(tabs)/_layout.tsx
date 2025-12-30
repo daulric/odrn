@@ -7,7 +7,7 @@ import { Alert, Modal, TouchableWithoutFeedback, View } from 'react-native';
 import { Button, List, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HapticTab } from '@/components/haptic-tab';
+import { HapticTab } from '@/components/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -54,26 +54,8 @@ export default function TabLayout() {
           tabBarButton: HapticTab,
           tabBarShowLabel: false,
           tabBarHideOnKeyboard: true,
-          tabBarStyle: {
-            position: 'absolute',
-            justifyContent: 'center',
-            alignItems: 'center',
-            left: 0,
-            right: 0,
-            marginHorizontal: '5%',
-            bottom: Math.max(insets.bottom - 20, 12),
-            height: 60,
-            borderRadius: 32,
-            backgroundColor: (theme.colors as any).elevation?.level2 ?? theme.colors.surface,
-            borderWidth: 1,
-            borderColor: theme.colors.outlineVariant,
-            paddingHorizontal: 10,
-            elevation: 8,
-            shadowColor: '#000',
-            shadowOpacity: 0.12,
-            shadowRadius: 40,
-            shadowOffset: { width: 0, height: 6 },
-          },
+          // Hide the default tab bar - we use GlobalTabBar instead
+          tabBarStyle: { display: 'none' },
           tabBarItemStyle: {
             borderRadius: 16,
             marginVertical: 8,

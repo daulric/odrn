@@ -8,7 +8,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CallProvider } from '@/contexts/CallContext';
-import { CallIndicator } from '@/components/CallIndicator';
+import { CallIndicator } from '@/components/calling';
+import { GlobalTabBar } from '@/components/navigation';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isCallingSupported } from '@/lib/calling/isCallingSupported';
 import { acceptCall, declineCall, subscribeToIncomingCalls } from '@/lib/calling/signaling';
@@ -319,6 +320,7 @@ export default function RootLayout() {
       <CallProvider>
         <RootLayoutNav />
         <CallIndicator />
+        <GlobalTabBar />
       </CallProvider>
     </AuthProvider>
   );

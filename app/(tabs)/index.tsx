@@ -1,13 +1,13 @@
-import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
+import { SwipeBetweenTabs } from '@/components/navigation';
+import { PostCard, PostData } from '@/components/posts';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAvatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import CryptoJS from 'crypto-js';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Dimensions, RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
-import { ActivityIndicator, Appbar, Avatar, Badge, Card, IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Appbar, Avatar, Badge, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -26,7 +26,7 @@ type FeedPost = {
   content: string | null;
   created_at: string | null;
   post_images: { image_url: string; order_index: number | null }[];
-  profiles: { username: string | null; email: string | null } | null;
+  profiles: { username: string | null; email: string | null; id?: string } | null;
 };
 
 export default function HomeScreen() {
@@ -47,26 +47,7 @@ export default function HomeScreen() {
     Math.max(76, Math.min(92, (availableWidth - FRIEND_GAP * (FRIENDS_PER_VIEW - 1)) / FRIENDS_PER_VIEW))
   );
 
-  const getGravatarUrl = (emailAddress: string) => {
-    const address = String(emailAddress).trim().toLowerCase();
-    const hash = CryptoJS.MD5(address).toString();
-    return `https://www.gravatar.com/avatar/${hash}?s=200&d=mp`;
-  };
-
-  const avatarSource = { uri: getGravatarUrl(user?.email || "test@test.com") };
-
-  const formatTimeAgo = (dateString: string | null) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return date.toLocaleDateString();
-  };
+  const avatarSource = { uri: getAvatarUrl(profile?.username || user?.email || user?.id || 'default') };
 
   // Helper to check if a user is truly online based on last_seen
   const isUserOnline = (isOnline: boolean, lastSeen?: string) => {
@@ -259,6 +240,7 @@ export default function HomeScreen() {
             order_index
           ),
           profiles (
+            id,
             username,
             email
           )
@@ -268,14 +250,15 @@ export default function HomeScreen() {
         .limit(25);
 
       if (error) throw error;
-      setFeedPosts((data as any) ?? []);
+      const posts = (data as any) ?? [];
+      setFeedPosts(posts);
     } catch (e) {
       console.error('Error fetching feed:', e);
       setFeedPosts([]);
     } finally {
       setFeedLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchFeed();
@@ -291,7 +274,7 @@ export default function HomeScreen() {
   }, [fetchFeed, fetchFriends]);
 
   const handleFriendPress = (friendId: string, username: string) => {
-    router.push(`/chat/${friendId}?username=${username}`);
+    router.push(`/profiles/${friendId}?username=${username}`);
   };
 
   return (
@@ -417,7 +400,7 @@ export default function HomeScreen() {
                     <View>
                       <Avatar.Image
                         size={56}
-                        source={{ uri: getGravatarUrl(friend.email) }}
+                        source={{ uri: getAvatarUrl(friend.username || friend.email) }}
                         style={{ backgroundColor: theme.colors.surfaceVariant }}
                       />
                       {friend.status === 'online' && (
@@ -469,84 +452,14 @@ export default function HomeScreen() {
               </View>
             </Surface>
           ) : (
-            feedPosts.map((post) => {
-              const sortedImages = [...(post.post_images ?? [])].sort(
-                (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
-              );
-              const firstImage = sortedImages[0]?.image_url;
-              const username = post.profiles?.username || 'User';
-              const avatarEmailOrName = post.profiles?.email || username;
-
-              return (
-            <Card
-              key={post.id}
-              onPress={() =>
-                router.push({
-                  pathname: '/posts/[id]',
-                  params: { id: post.id },
-                })
-              }
-              style={{
-                borderRadius: 20,
-                backgroundColor: theme.colors.surface,
-                marginBottom: 14,
-              }}
-              mode="elevated"
-            >
-              <Card.Content style={{ paddingTop: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Avatar.Image
-                    size={40}
-                    source={{ uri: getGravatarUrl(avatarEmailOrName) }}
-                    style={{ backgroundColor: theme.colors.surfaceVariant }}
-                  />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text variant="titleMedium" style={{ fontWeight: '700' }}>
-                      {username}
-                    </Text>
-                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                      {formatTimeAgo(post.created_at)}
-                    </Text>
-                  </View>
-                  <IconButton icon="dots-horizontal" onPress={() => {}} />
-                </View>
-              </Card.Content>
-
-              {/* Image (clip corners via wrapper View, not Card overflow) */}
-              {firstImage ? (
-                <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-                  <View style={{ borderRadius: 16, overflow: 'hidden' }}>
-                    <Image
-                      source={{ uri: firstImage }}
-                      style={{ width: '100%', height: 240 }}
-                      contentFit="cover"
-                    />
-                  </View>
-                </View>
-              ) : null}
-
-              <Card.Content style={{ paddingTop: 10, paddingBottom: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <IconButton icon="heart-outline" onPress={() => {}} />
-                  <Text variant="labelLarge" style={{ marginLeft: -8, marginRight: 8 }}>
-                    0
-                  </Text>
-                  <IconButton icon="comment-outline" onPress={() => {}} />
-                  <IconButton icon="send-outline" onPress={() => {}} />
-                  <View style={{ flex: 1 }} />
-                  <IconButton icon="bookmark-outline" onPress={() => {}} />
-                </View>
-
-                {post.content ? (
-                  <Text variant="bodyMedium">
-                    <Text style={{ fontWeight: '700' }}>{username} </Text>
-                    {post.content}
-                  </Text>
-                ) : null}
-              </Card.Content>
-            </Card>
-              );
-            })
+            feedPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post as PostData}
+                expanded={false}
+                horizontalPadding={0}
+              />
+            ))
           )}
         </ScrollView>
       </SafeAreaView>

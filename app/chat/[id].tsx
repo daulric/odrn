@@ -1,12 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext"
-import { supabase } from "@/lib/supabase"
-import { createOutgoingCall } from "@/lib/calling/signaling"
 import { isCallingSupported } from "@/lib/calling/isCallingSupported"
+import { createOutgoingCall } from "@/lib/calling/signaling"
+import { getAvatarUrl } from "@/lib/getUserProfile"
+import { supabase } from "@/lib/supabase"
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native"
+import { ActivityIndicator, Alert, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TouchableOpacity, View } from "react-native"
 import { IconButton, Surface, Text, TextInput, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -21,6 +22,14 @@ interface Message {
 
 import { sendNewMessagePush } from "@/lib/calling/push"
 
+interface ReceiverProfile {
+  id: string
+  username: string | null
+  email: string | null
+  avatar: string | null
+  is_online: boolean | null
+}
+
 export default function ChatScreen() {
   const { id, username } = useLocalSearchParams()
   const receiverId = Array.isArray(id) ? id[0] : id
@@ -29,9 +38,32 @@ export default function ChatScreen() {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [startingCall, setStartingCall] = useState(false)
+  const [receiverProfile, setReceiverProfile] = useState<ReceiverProfile | null>(null)
   const scrollViewRef = useRef<ScrollView>(null)
   const theme = useTheme()
   const callingSupported = isCallingSupported()
+
+  // Fetch receiver's profile
+  useEffect(() => {
+    if (!receiverId) return
+    
+    const fetchReceiverProfile = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, email, avatar, is_online")
+        .eq("id", receiverId)
+        .single()
+      
+      if (!error && data) {
+        setReceiverProfile(data)
+      }
+    }
+    
+    fetchReceiverProfile()
+  }, [receiverId])
+
+  const receiverAvatarUrl = receiverProfile?.username || receiverProfile?.email ? getAvatarUrl(receiverProfile.username || receiverProfile.email || '') : null
+  const displayName = receiverProfile?.username || (username as string) || "Chat"
 
   // <CHANGE> Helper function to scroll to bottom
   const scrollToBottom = () => {
@@ -211,7 +243,39 @@ export default function ChatScreen() {
       <Stack.Screen
         options={{
           headerBackTitle: "Return",
-          title: (username as string) || "Chat",
+          title: displayName,
+          headerTitle: () => (
+            <TouchableOpacity
+              onPress={() => {
+                void Haptics.selectionAsync()
+                router.push(`/profiles/${receiverId}`)
+              }}
+              className="flex-row items-center"
+              activeOpacity={0.7}
+            >
+              <View className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 items-center justify-center overflow-hidden mr-2">
+                {receiverAvatarUrl ? (
+                  <Image
+                    source={{ uri: receiverAvatarUrl }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#6b7280' }}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </Text>
+                )}
+              </View>
+              <View>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.onSurface }}>
+                  {displayName}
+                </Text>
+                {receiverProfile?.is_online && (
+                  <Text style={{ fontSize: 11, color: '#22c55e' }}>Online</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <Pressable
               disabled={!callingSupported || !user || !receiverId || startingCall}

@@ -1,7 +1,7 @@
 import type { PropsWithChildren, ReactElement } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { ThemedView } from '@/components/themed-view';
+import { ThemedView } from '@/components/common/ThemedView';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -46,3 +46,4 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
+
