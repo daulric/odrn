@@ -62,7 +62,20 @@ jobs:
       - name: Run Semgrep
         run: |
           semgrep --version
-          semgrep scan --config p/javascript --config p/typescript --config p/react --config p/security-audit --config p/secrets .
+          semgrep scan \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/react \
+            --config p/react-native \
+            --config p/security-audit \
+            --config p/secrets \
+            --include "*.js" \
+            --include "*.jsx" \
+            --include "*.ts" \
+            --include "*.tsx" \
+            --include "*.mjs" \
+            --include "*.cjs" \
+            .
         continue-on-error: true
 
   secrets-scan:
