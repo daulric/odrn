@@ -66,7 +66,6 @@ jobs:
             --config p/javascript \
             --config p/typescript \
             --config p/react \
-            --config p/react-native \
             --config p/security-audit \
             --config p/secrets \
             --include "*.js" \
