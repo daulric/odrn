@@ -291,7 +291,7 @@ export default function HomeScreen() {
   }, [fetchFeed, fetchFriends]);
 
   const handleFriendPress = (friendId: string, username: string) => {
-    router.push(`/chat/${friendId}?username=${username}`);
+    router.push(`/profiles/${friendId}?username=${username}`);
   };
 
   return (
