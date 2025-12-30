@@ -1,7 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import CryptoJS from 'crypto-js';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -59,10 +58,9 @@ interface PostCardProps {
 }
 
 // Utility functions
-const getGravatarUrl = (emailAddress: string) => {
-  const address = String(emailAddress || '').trim().toLowerCase();
-  const hash = CryptoJS.MD5(address).toString();
-  return `https://www.gravatar.com/avatar/${hash}?s=200&d=mp`;
+const getAvatarUrl = (seed: string, size = 200) => {
+  const sanitizedSeed = encodeURIComponent(String(seed || 'default').trim().toLowerCase());
+  return `https://api.dicebear.com/9.x/thumbs/png?seed=${sanitizedSeed}&size=${size}`;
 };
 
 const formatTimeAgo = (dateString: string | null) => {
@@ -102,8 +100,8 @@ export function PostCard({
 
   // Derived values
   const username = post.profiles?.username || 'User';
-  const avatarEmail = post.profiles?.email || post.profiles?.username || '';
-  const avatarUrl = getGravatarUrl(avatarEmail);
+  const avatarSeed = post.profiles?.username || post.profiles?.email || post.userid;
+  const avatarUrl = getAvatarUrl(avatarSeed);
   const profileId = post.profiles?.id || post.userid;
   
   const sortedImages = [...(post.post_images || [])].sort(

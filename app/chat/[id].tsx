@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { isCallingSupported } from "@/lib/calling/isCallingSupported"
 import { createOutgoingCall } from "@/lib/calling/signaling"
-import { getGravatarUrl } from "@/lib/getUserProfile"
+import { getAvatarUrl } from "@/lib/getUserProfile"
 import { supabase } from "@/lib/supabase"
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
@@ -62,7 +62,7 @@ export default function ChatScreen() {
     fetchReceiverProfile()
   }, [receiverId])
 
-  const receiverAvatarUrl = receiverProfile?.email ? getGravatarUrl(receiverProfile.email) : null
+  const receiverAvatarUrl = receiverProfile?.username || receiverProfile?.email ? getAvatarUrl(receiverProfile.username || receiverProfile.email || '') : null
   const displayName = receiverProfile?.username || (username as string) || "Chat"
 
   // <CHANGE> Helper function to scroll to bottom

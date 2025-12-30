@@ -1,9 +1,9 @@
 import { SwipeBetweenTabs } from '@/components/navigation';
 import { PostCard, PostData } from '@/components/posts';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAvatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import CryptoJS from 'crypto-js';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Dimensions, RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -47,13 +47,7 @@ export default function HomeScreen() {
     Math.max(76, Math.min(92, (availableWidth - FRIEND_GAP * (FRIENDS_PER_VIEW - 1)) / FRIENDS_PER_VIEW))
   );
 
-  const getGravatarUrl = (emailAddress: string) => {
-    const address = String(emailAddress).trim().toLowerCase();
-    const hash = CryptoJS.MD5(address).toString();
-    return `https://www.gravatar.com/avatar/${hash}?s=200&d=mp`;
-  };
-
-  const avatarSource = { uri: getGravatarUrl(user?.email || "test@test.com") };
+  const avatarSource = { uri: getAvatarUrl(profile?.username || user?.email || user?.id || 'default') };
 
   // Helper to check if a user is truly online based on last_seen
   const isUserOnline = (isOnline: boolean, lastSeen?: string) => {
@@ -406,7 +400,7 @@ export default function HomeScreen() {
                     <View>
                       <Avatar.Image
                         size={56}
-                        source={{ uri: getGravatarUrl(friend.email) }}
+                        source={{ uri: getAvatarUrl(friend.username || friend.email) }}
                         style={{ backgroundColor: theme.colors.surfaceVariant }}
                       />
                       {friend.status === 'online' && (

@@ -1,4 +1,4 @@
-import { getGravatarUrl } from '@/lib/getUserProfile';
+import { getAvatarUrl } from '@/lib/getUserProfile';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -369,7 +369,7 @@ export default function MessagesScreen() {
               className="flex-row items-center px-5 py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800"
             >
               <Image
-                source={{ uri: getGravatarUrl(item.friend.email || item.friend.username) }}
+                source={{ uri: getAvatarUrl(item.friend.email || item.friend.username) }}
                 style={{ width: 50, height: 50, borderRadius: 25 }}
               />
               <View className="flex-1 ml-3">
@@ -448,7 +448,7 @@ export default function MessagesScreen() {
           renderItem={({ item }) => (
             <View className="flex-row items-center px-5 py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
               <Image
-                source={{ uri: getGravatarUrl(item.sender.email || item.sender.username) }}
+                source={{ uri: getAvatarUrl(item.sender.email || item.sender.username) }}
                 style={{ width: 50, height: 50, borderRadius: 25 }}
               />
               <View className="flex-1 ml-3">
@@ -504,7 +504,7 @@ export default function MessagesScreen() {
                 activeOpacity={0.7}
               >
                 <Image
-                  source={{ uri: getGravatarUrl(item.email || item.username) }}
+                  source={{ uri: getAvatarUrl(item.email || item.username) }}
                   style={{ width: 50, height: 50, borderRadius: 25 }}
                 />
                 <View className="ml-3 flex-1">

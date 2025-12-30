@@ -1,7 +1,8 @@
-import CryptoJS from 'crypto-js';
-
-export const getGravatarUrl = (emailAddress: string) => {
-    const address = String(emailAddress).trim().toLowerCase();
-    const hash = CryptoJS.MD5(address).toString();
-    return `https://www.gravatar.com/avatar/${hash}?s=400&d=mp`;
+/**
+ * Generate an avatar URL using DiceBear's API.
+ * Uses the "thumbs" style for friendly, unique avatars based on the seed.
+ */
+export const getAvatarUrl = (seed: string, size = 400) => {
+    const sanitizedSeed = encodeURIComponent(String(seed || 'default').trim().toLowerCase());
+    return `https://api.dicebear.com/9.x/thumbs/png?seed=${sanitizedSeed}&size=${size}`;
 };

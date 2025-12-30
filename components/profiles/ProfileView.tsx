@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { getGravatarUrl } from '@/lib/getUserProfile';
+import { getAvatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -84,7 +84,7 @@ export default function ProfileView({ userId, showBackButton = true }: ProfileVi
   const [actionLoading, setActionLoading] = useState(false);
 
   const isOwnProfile = currentUserProfile?.id === userId;
-  const avatarUrl = profile?.email ? getGravatarUrl(profile.email) : null;
+  const avatarUrl = profile?.username || profile?.email ? getAvatarUrl(profile.username || profile.email || '') : null;
   const backgroundImageUrl = profile?.email 
     ? getBackgroundImageUrl(profile.email) 
     : profile?.username 

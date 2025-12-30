@@ -1,5 +1,5 @@
 import { ProfileView } from '@/components/profiles';
-import { getGravatarUrl } from '@/lib/getUserProfile';
+import { getAvatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -38,7 +38,7 @@ export default function ProfileScreen() {
     fetchProfile();
   }, [id]);
 
-  const avatarUrl = profile?.email ? getGravatarUrl(profile.email) : null;
+  const avatarUrl = profile?.username || profile?.email ? getAvatarUrl(profile.username || profile.email || '') : null;
   const displayName = profile?.username || 'Profile';
 
   if (!id) {

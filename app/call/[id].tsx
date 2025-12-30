@@ -3,7 +3,7 @@ import { useCall } from '@/contexts/CallContext';
 import { acceptCall, cancelCall, declineCall, endCall, getCall, sendSignal, subscribeToCall, subscribeToSignals } from '@/lib/calling/signaling';
 import type { CallRow, CallSignalRow } from '@/lib/calling/types';
 import { WebRTCCallSession } from '@/lib/calling/webrtc';
-import { getGravatarUrl } from '@/lib/getUserProfile';
+import { getAvatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import Constants from 'expo-constants';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -472,7 +472,7 @@ export default function CallScreen() {
   const displayName = remoteProfile?.username || 'Friend';
   const avatarUri =
     remoteProfile?.avatar ||
-    (remoteProfile?.email || remoteProfile?.username ? getGravatarUrl(remoteProfile.email || remoteProfile.username || '') : null);
+    (remoteProfile?.username || remoteProfile?.email ? getAvatarUrl(remoteProfile.username || remoteProfile.email || '') : null);
 
   return (
     <>
