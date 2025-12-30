@@ -33,8 +33,9 @@ export function GlobalTabBar() {
   const theme = useTheme();
   const { unreadCount } = useAuth();
 
-  const currentSegment = String(segments[0] ?? '');
-  const currentSubSegment = String(segments[1] ?? '');
+  const segmentsArray = segments as string[];
+  const currentSegment = String(segmentsArray[0] ?? '');
+  const currentSubSegment = String(segmentsArray[1] ?? '');
 
   // Don't show tab bar if not authenticated or on certain screens
   if (!session || !profile) return null;
