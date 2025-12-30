@@ -51,19 +51,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Semgrep
-        uses: semgrep/semgrep-action@v1
-        env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          config: >-
-            p/javascript
-            p/typescript
-            p/react
-            p/security-audit
-            p/secrets
-          # Use latest Semgrep version (1.76.0+)
-          semgrepVersion: 'latest'
+          python-version: '3.12'
+
+      - name: Install Semgrep (latest)
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep --version
+          semgrep scan --config p/javascript --config p/typescript --config p/react --config p/security-audit --config p/secrets .
         continue-on-error: true
 
   secrets-scan:
