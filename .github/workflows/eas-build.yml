@@ -7,15 +7,6 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      platform:
-        description: 'Platform to build'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - android
-          - ios
       profile:
         description: 'Build profile'
         required: true
@@ -54,24 +45,34 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Determine build parameters
+      - name: Determine build profile and channel
         id: params
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            PLATFORM="${{ github.event.inputs.platform }}"
             PROFILE="${{ github.event.inputs.profile }}"
           else
-            PLATFORM="all"
-            PROFILE="preview"
+            # Auto-detect profile based on branch name
+            BRANCH="${{ github.ref_name }}"
+            case "$BRANCH" in
+              production)
+                PROFILE="production"
+                ;;
+              main|master)
+                PROFILE="preview"
+                ;;
+              *)
+                PROFILE="development"
+                ;;
+            esac
           fi
-          echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
+          
+          # Channel matches profile name
+          CHANNEL="$PROFILE"
+          
           echo "profile=$PROFILE" >> $GITHUB_OUTPUT
+          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+          echo "Building with profile: $PROFILE, channel: $CHANNEL"
 
       - name: Build Android
-        if: steps.params.outputs.platform == 'all' || steps.params.outputs.platform == 'android'
-        run: eas build --platform android --profile ${{ steps.params.outputs.profile }} --non-interactive --no-wait
-
-      - name: Build iOS
-        if: steps.params.outputs.platform == 'all' || steps.params.outputs.platform == 'ios'
-        run: eas build --platform ios --profile ${{ steps.params.outputs.profile }} --non-interactive --no-wait
+        run: eas build --platform android --profile ${{ steps.params.outputs.profile }} --message "Build from ${{ github.ref_name }} branch" --non-interactive --no-wait
 
