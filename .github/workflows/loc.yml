@@ -16,19 +16,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install tokei
-        run: |
-          curl -fsSL https://github.com/XAMPPRocky/tokei/releases/latest/download/tokei-x86_64-unknown-linux-gnu.tar.gz -o tokei.tar.gz
-          tar -xzf tokei.tar.gz
-          chmod +x tokei
+      - name: Install cloc
+        run: sudo apt-get install -y cloc
 
       - name: Count lines of code
-        id: loc
         run: |
           echo "## 📊 Lines of Code Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          ./tokei . --exclude node_modules --exclude dist --exclude ios/Pods --exclude android/.gradle --exclude "*.lock" >> $GITHUB_STEP_SUMMARY
+          cloc . --vcs=git --exclude-dir=node_modules,dist,.expo,.next --exclude-ext=lock >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Detailed breakdown
@@ -36,33 +32,23 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📁 By Directory" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Directory | Files | Lines |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Directory | Files | Code | Comments | Blank |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|------|----------|-------|" >> $GITHUB_STEP_SUMMARY
           
-          # Count app directory
-          APP_LOC=$(./tokei app --output json 2>/dev/null | jq '.Total.code // 0' || echo "0")
-          APP_FILES=$(./tokei app --output json 2>/dev/null | jq '[.[] | select(.name != "Total") | .reports[].stats.code] | length' || echo "0")
-          echo "| app/ | $APP_FILES | $APP_LOC |" >> $GITHUB_STEP_SUMMARY
-          
-          # Count components directory
-          COMP_LOC=$(./tokei components --output json 2>/dev/null | jq '.Total.code // 0' || echo "0")
-          echo "| components/ | - | $COMP_LOC |" >> $GITHUB_STEP_SUMMARY
-          
-          # Count lib directory
-          LIB_LOC=$(./tokei lib --output json 2>/dev/null | jq '.Total.code // 0' || echo "0")
-          echo "| lib/ | - | $LIB_LOC |" >> $GITHUB_STEP_SUMMARY
-          
-          # Count contexts directory
-          CTX_LOC=$(./tokei contexts --output json 2>/dev/null | jq '.Total.code // 0' || echo "0")
-          echo "| contexts/ | - | $CTX_LOC |" >> $GITHUB_STEP_SUMMARY
-          
-          # Count hooks directory
-          HOOKS_LOC=$(./tokei hooks --output json 2>/dev/null | jq '.Total.code // 0' || echo "0")
-          echo "| hooks/ | - | $HOOKS_LOC |" >> $GITHUB_STEP_SUMMARY
+          for dir in app components lib contexts hooks; do
+            if [ -d "$dir" ]; then
+              STATS=$(cloc "$dir" --csv --quiet 2>/dev/null | tail -1 || echo "0,0,0,0,0")
+              FILES=$(echo "$STATS" | cut -d',' -f1)
+              BLANK=$(echo "$STATS" | cut -d',' -f3)
+              COMMENT=$(echo "$STATS" | cut -d',' -f4)
+              CODE=$(echo "$STATS" | cut -d',' -f5)
+              echo "| $dir/ | $FILES | $CODE | $COMMENT | $BLANK |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
 
       - name: Output total
         run: |
-          TOTAL=$(./tokei . --exclude node_modules --exclude dist --exclude ios/Pods --exclude android/.gradle --exclude "*.lock" --output json | jq '.Total.code')
+          TOTAL=$(cloc . --vcs=git --exclude-dir=node_modules,dist,.expo,.next --csv --quiet 2>/dev/null | grep "SUM" | cut -d',' -f5 || echo "N/A")
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "**Total Lines of Code:** $TOTAL" >> $GITHUB_STEP_SUMMARY
