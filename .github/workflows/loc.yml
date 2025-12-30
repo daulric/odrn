@@ -21,35 +21,31 @@ jobs:
 
       - name: Count lines of code
         run: |
+          echo "📊 Lines of Code Report"
+          echo "========================"
+          cloc . --vcs=git --exclude-dir=node_modules,dist,.expo,.next --exclude-ext=lock | tee cloc-output.txt
+          
+          # Also write to summary
           echo "## 📊 Lines of Code Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          cloc . --vcs=git --exclude-dir=node_modules,dist,.expo,.next --exclude-ext=lock >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat cloc-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Detailed breakdown
+      - name: Breakdown by directory
         run: |
+          echo ""
+          echo "📁 By Directory"
+          echo "==============="
+          
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📁 By Directory" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Directory | Files | Code | Comments | Blank |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|------|----------|-------|" >> $GITHUB_STEP_SUMMARY
           
-          for dir in app components lib contexts hooks; do
+          for dir in app components lib contexts hooks supabase; do
             if [ -d "$dir" ]; then
-              STATS=$(cloc "$dir" --csv --quiet 2>/dev/null | tail -1 || echo "0,0,0,0,0")
-              FILES=$(echo "$STATS" | cut -d',' -f1)
-              BLANK=$(echo "$STATS" | cut -d',' -f3)
-              COMMENT=$(echo "$STATS" | cut -d',' -f4)
-              CODE=$(echo "$STATS" | cut -d',' -f5)
-              echo "| $dir/ | $FILES | $CODE | $COMMENT | $BLANK |" >> $GITHUB_STEP_SUMMARY
+              echo "--- $dir/ ---"
+              cloc "$dir" --vcs=git --quiet
             fi
           done
-
-      - name: Output total
-        run: |
-          TOTAL=$(cloc . --vcs=git --exclude-dir=node_modules,dist,.expo,.next --csv --quiet 2>/dev/null | grep "SUM" | cut -d',' -f5 || echo "N/A")
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "**Total Lines of Code:** $TOTAL" >> $GITHUB_STEP_SUMMARY
 
