@@ -2,7 +2,7 @@ name: EAS Build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, production]
     tags:
       - 'v*'
   workflow_dispatch:
