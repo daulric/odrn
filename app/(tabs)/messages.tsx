@@ -16,6 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCall } from '@/contexts/CallContext';
+import { isCallingSupported } from '@/lib/calling/isCallingSupported';
+import { createOutgoingCall } from '@/lib/calling/signaling';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -43,11 +46,14 @@ interface Friend {
 
 export default function MessagesScreen() {
   const { user } = useAuth();
+  const { activeCall } = useCall();
   const router = useRouter();
+  const callingSupported = isCallingSupported();
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'people'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [startingCallUserId, setStartingCallUserId] = useState<string | null>(null);
 
   // Data states
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -282,6 +288,38 @@ export default function MessagesScreen() {
     router.push(`/chat/${userId}?username=${username}`);
   };
 
+  const isInCallWith = (userId: string) => {
+    console.log("Checking isInCallWith:", { userId, activeCall, match: activeCall?.remoteUserId === userId });
+    return activeCall?.remoteUserId === userId;
+  };
+
+  const handleCall = async (otherUserId: string) => {
+    if (!user) return;
+    if (!callingSupported) {
+      Alert.alert('Calling unavailable', 'Calling requires a development build (not Expo Go).');
+      return;
+    }
+
+    // If already in a call with this user, navigate back to that call
+    if (activeCall && activeCall.remoteUserId === otherUserId) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push(`/call/${activeCall.id}`);
+      return;
+    }
+
+    try {
+      setStartingCallUserId(otherUserId);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+      const call = await createOutgoingCall({ callerId: user.id, calleeId: otherUserId });
+      router.push(`/call/${call.id}`);
+    } catch (e) {
+      console.error('Failed to start call:', e);
+      Alert.alert('Cannot start call', 'You can only call accepted friends.');
+    } finally {
+      setStartingCallUserId(null);
+    }
+  };
+
   const TabButton = ({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: () => void }) => (
     <TouchableOpacity 
       onPress={() => {
@@ -318,7 +356,7 @@ export default function MessagesScreen() {
           ListEmptyComponent={
             <View className="p-8 items-center">
               <Text className="text-gray-500 dark:text-gray-400 text-center">
-                No friends yet. Go to 'People' to find someone!
+                No friends yet. Go to People to find someone!
               </Text>
             </View>
           }
@@ -349,11 +387,40 @@ export default function MessagesScreen() {
                   </Text>
                 </View>
               ) : null}
-              <View className="bg-green-100 dark:bg-green-900 px-3 py-1.5 rounded-full flex-row items-center">
-                <Ionicons name="chatbubble-ellipses-outline" size={16} color={activeTab === 'friends' ? '#15803d' : '#86efac'} style={{ marginRight: 4 }} />
-                <Text className="text-green-700 dark:text-green-300 font-medium text-xs">
-                  Message
-                </Text>
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    void handleCall(item.friend.id);
+                  }}
+                  disabled={!callingSupported || startingCallUserId === item.friend.id}
+                  className={`px-3 py-1.5 rounded-full flex-row items-center ${
+                    isInCallWith(item.friend.id) ? 'bg-green-500' :
+                    callingSupported ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-200 dark:bg-gray-800'
+                  }`}
+                >
+                  <Ionicons 
+                    name={isInCallWith(item.friend.id) ? "arrow-undo" : "call-outline"} 
+                    size={16} 
+                    color={isInCallWith(item.friend.id) ? '#ffffff' : callingSupported ? '#1d4ed8' : '#6b7280'} 
+                    style={{ marginRight: 4 }} 
+                  />
+                  <Text className={`${
+                    isInCallWith(item.friend.id) ? 'text-white' :
+                    callingSupported ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'
+                  } font-medium text-xs`}>
+                    {!callingSupported ? 'Dev build' : 
+                     startingCallUserId === item.friend.id ? 'Calling…' : 
+                     isInCallWith(item.friend.id) ? 'Return to Call' : 'Call'}
+                  </Text>
+                </TouchableOpacity>
+
+                <View className="bg-green-100 dark:bg-green-900 px-3 py-1.5 rounded-full flex-row items-center">
+                  <Ionicons name="chatbubble-ellipses-outline" size={16} color={activeTab === 'friends' ? '#15803d' : '#86efac'} style={{ marginRight: 4 }} />
+                  <Text className="text-green-700 dark:text-green-300 font-medium text-xs">
+                    Message
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}

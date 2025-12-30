@@ -1,7 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
-import { File } from "expo-file-system";
 import { Image } from "expo-image";
 //import * as ImageManipulator from 'expo-image-manipulator'
 import { SwipeBetweenTabs } from "@/components/swipe-between-tabs";
@@ -12,6 +11,7 @@ import { useState } from "react";
 import { Alert, Dimensions, ScrollView, TouchableOpacity, View } from "react-native";
 import { Button, Surface, Text, TextInput, useTheme } from "react-native-paper";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { processImage } from "@/lib/modules/process_image";
 
 const { width } = Dimensions.get("window")
 
@@ -76,14 +76,11 @@ export default function UploadScreen() {
     const contentType = `image/${fileExt}`;
 
     try {
-      const file = new File(finalUri);
-    
-      const arrayBuffer = await file.arrayBuffer();
+      const processedImage = await processImage(finalUri);
 
-      // 3. Upload to Supabase
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("ordn-images")
-        .upload(fileName, arrayBuffer, {
+        .upload(fileName, processedImage.buffer, {
           contentType,
           upsert: false,
         });

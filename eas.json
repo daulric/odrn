@@ -16,6 +16,10 @@
           "buildType": "apk"
         },
         "channel": "preview"
+      },
+      "development": {
+        "distribution": "internal",
+        "developmentClient": true
       }
     },
     "submit": {

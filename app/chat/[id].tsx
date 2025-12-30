@@ -1,10 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
+import { createOutgoingCall } from "@/lib/calling/signaling"
+import { isCallingSupported } from "@/lib/calling/isCallingSupported"
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { Stack, useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native"
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native"
 import { IconButton, Surface, Text, TextInput, useTheme } from "react-native-paper"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -17,6 +19,8 @@ interface Message {
   seen: boolean
 }
 
+import { sendNewMessagePush } from "@/lib/calling/push"
+
 export default function ChatScreen() {
   const { id, username } = useLocalSearchParams()
   const receiverId = Array.isArray(id) ? id[0] : id
@@ -24,8 +28,10 @@ export default function ChatScreen() {
   const router = useRouter()
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
+  const [startingCall, setStartingCall] = useState(false)
   const scrollViewRef = useRef<ScrollView>(null)
   const theme = useTheme()
+  const callingSupported = isCallingSupported()
 
   // <CHANGE> Helper function to scroll to bottom
   const scrollToBottom = () => {
@@ -185,6 +191,13 @@ export default function ChatScreen() {
         }
         return [...filtered, data]
       })
+
+      // Fire-and-forget push if recipient is offline
+      void sendNewMessagePush({
+        senderId: user.id,
+        receiverId,
+        messageContent: content,
+      }).catch((e) => console.warn("Failed to send message push:", e))
     }
   }
 
@@ -199,6 +212,50 @@ export default function ChatScreen() {
         options={{
           headerBackTitle: "Return",
           title: (username as string) || "Chat",
+          headerRight: () => (
+            <Pressable
+              disabled={!callingSupported || !user || !receiverId || startingCall}
+              hitSlop={10}
+              onPress={async () => {
+                if (!callingSupported) {
+                  Alert.alert('Calling unavailable', 'Calling requires a development build (not Expo Go).')
+                  return
+                }
+                if (!user || !receiverId) return
+                try {
+                  setStartingCall(true)
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                  const call = await createOutgoingCall({ callerId: user.id, calleeId: receiverId })
+                  router.push(`/call/${call.id}`)
+                } catch (e: any) {
+                  console.error('Failed to start call:', e)
+                  Alert.alert('Cannot start call', 'You can only call accepted friends.')
+                } finally {
+                  setStartingCall(false)
+                }
+              }}
+              style={({ pressed }) => {
+                return {
+                  marginRight: 12,
+                  width: 36,
+                  height: 36,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  alignSelf: 'center',
+                  backgroundColor: 'transparent',
+                  opacity: (!callingSupported || !user || !receiverId || startingCall ? 0.45 : 1) * (pressed ? 0.6 : 1),
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Call"
+            >
+              {startingCall ? (
+                <ActivityIndicator size="small" color={theme.colors.onSurface} />
+              ) : (
+                <Ionicons name="call-outline" size={18} color={theme.colors.onSurface} style={{ transform: [{ translateX: 1 }] }} />
+              )}
+            </Pressable>
+          ),
         }}
       />
       <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={["bottom"]}>
