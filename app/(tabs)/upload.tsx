@@ -3,7 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 //import * as ImageManipulator from 'expo-image-manipulator'
-import { SwipeBetweenTabs } from "@/components/swipe-between-tabs";
+import { SwipeBetweenTabs } from "@/components/navigation";
+import { processImage } from "@/lib/modules/process_image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -11,7 +12,6 @@ import { useState } from "react";
 import { Alert, Dimensions, ScrollView, TouchableOpacity, View } from "react-native";
 import { Button, Surface, Text, TextInput, useTheme } from "react-native-paper";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { processImage } from "@/lib/modules/process_image";
 
 const { width } = Dimensions.get("window")
 
@@ -69,18 +69,19 @@ export default function UploadScreen() {
   }
 
   const uploadImageToStorage = async (imageUri: string, index: number, postId: string): Promise<string> => {
-    let finalUri = imageUri;
-    let fileExt = imageUri.split(".").pop()?.toLowerCase();
-
-    const fileName = `${postId}/${Date.now()}-${index}.${fileExt}`;
-    const contentType = `image/${fileExt}`;
-
     try {
-      const processedImage = await processImage(finalUri);
+      const processedImage = await processImage(imageUri);
+
+      // Use the processed image's extension and content type (always JPEG after processing)
+      const fileName = `${postId}/${Date.now()}-${index}.${processedImage.extension}`;
+      const contentType = processedImage.contentType;
+
+      // Convert ArrayBuffer to Blob for React Native compatibility
+      const blob = new Blob([processedImage.buffer], { type: contentType });
 
       const { error } = await supabase.storage
         .from("ordn-images")
-        .upload(fileName, processedImage.buffer, {
+        .upload(fileName, blob, {
           contentType,
           upsert: false,
         });
@@ -105,6 +106,7 @@ export default function UploadScreen() {
     }
 
     setUploading(true)
+    let createdPostId: string | null = null
 
     try {
       const { data: postData, error: postError } = await supabase
@@ -117,6 +119,8 @@ export default function UploadScreen() {
         .single()
 
       if (postError) throw postError
+
+      createdPostId = postData.id
 
       const uploadPromises = selectedImages.map((imageUri, index) => uploadImageToStorage(imageUri, index, postData.id))
 
@@ -144,6 +148,16 @@ export default function UploadScreen() {
       ])
     } catch (error) {
       console.error("Error uploading post:", error)
+
+      // Clean up: delete the post record if it was created
+      if (createdPostId) {
+        try {
+          await supabase.from("posts").delete().eq("id", createdPostId)
+        } catch (deleteError) {
+          console.error("Failed to clean up post record:", deleteError)
+        }
+      }
+
       Alert.alert("Error", "Failed to upload post. Please try again.")
     } finally {
       setUploading(false)

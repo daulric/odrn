@@ -1,4 +1,4 @@
-import ProfileView from '@/components/profiles/ProfileView';
+import { ProfileView } from '@/components/profiles';
 import { getGravatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import * as Haptics from 'expo-haptics';

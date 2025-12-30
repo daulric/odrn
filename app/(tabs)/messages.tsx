@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
+import { SwipeBetweenTabs } from '@/components/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCall } from '@/contexts/CallContext';
 import { isCallingSupported } from '@/lib/calling/isCallingSupported';
@@ -377,7 +377,7 @@ export default function MessagesScreen() {
                   {item.friend.username}
                 </Text>
                 <Text className="text-sm text-green-600 dark:text-green-500">
-                  Connected
+                  connected
                 </Text>
               </View>
               {item.unread ? (
@@ -498,24 +498,32 @@ export default function MessagesScreen() {
           }
           renderItem={({ item }) => (
             <View className="flex-row items-center px-5 py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-              <Image
-                source={{ uri: getGravatarUrl(item.email || item.username) }}
-                style={{ width: 50, height: 50, borderRadius: 25 }}
-              />
-              <View className="flex-1 ml-3">
-                <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {item.username}
-                </Text>
-                <Text className="text-sm text-gray-500 dark:text-gray-400">
-                  User
-                </Text>
-              </View>
+              <TouchableOpacity 
+                onPress={() => router.push(`/profiles/${item.id}?username=${item.username}`)}
+                className="flex-row items-center flex-1"
+                activeOpacity={0.7}
+              >
+                <Image
+                  source={{ uri: getGravatarUrl(item.email || item.username) }}
+                  style={{ width: 50, height: 50, borderRadius: 25 }}
+                />
+                <View className="ml-3 flex-1">
+                  <Text className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {item.username}
+                  </Text>
+                  <Text className="text-sm text-gray-500 dark:text-gray-400">
+                    Tap to view profile
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
               <TouchableOpacity 
                 onPress={() => handleAddFriend(item.id)}
-                className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 flex-row items-center"
+                className="bg-blue-500 px-4 py-2 rounded-full flex-row items-center ml-2"
+                activeOpacity={0.7}
               >
-                <Ionicons name="person-add-outline" size={16} color="#4b5563" style={{ marginRight: 4 }} />
-                <Text className="text-gray-900 dark:text-white font-medium text-xs">
+                <Ionicons name="person-add-outline" size={16} color="white" style={{ marginRight: 6 }} />
+                <Text className="text-white font-semibold text-sm">
                   Add
                 </Text>
               </TouchableOpacity>

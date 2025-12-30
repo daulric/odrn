@@ -1,5 +1,5 @@
-import ProfileView from '@/components/profiles/ProfileView';
-import { SwipeBetweenTabs } from '@/components/swipe-between-tabs';
+import { ProfileView } from '@/components/profiles';
+import { SwipeBetweenTabs } from '@/components/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
