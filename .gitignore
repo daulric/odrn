@@ -43,3 +43,4 @@ app-example
 /ios
 /android
 build-*.apk
+/services/google-services.json
