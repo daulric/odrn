@@ -322,3 +322,5 @@ To enable realtime for messages:
 alter publication supabase_realtime add table ordn.messages;
 ```
 
+
+from daulric

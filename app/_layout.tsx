@@ -41,21 +41,21 @@ function RootLayoutNav() {
 
     const inAuthGroup = currentSegment === 'auth';
     const inCreateUsernameGroup = currentSegment === 'create-username';
-    const inTabsGroup = currentSegment === '(tabs)';
     const inUpdatesScreen = currentSegment === 'updates-screen';
 
     if (!session) {
-      // Not signed in, redirect to auth (unless already on auth or index)
-      if (!inAuthGroup && !inTabsGroup && !inUpdatesScreen) {
+      // Not signed in, redirect to auth (unless already there or on updates screen)
+      if (!inAuthGroup && !inUpdatesScreen) {
         router.replace('/auth');
       }
-    } else if (session && !profile) {
-      // Signed in but no profile, redirect to create username (unless already there or in tabs)
-      if (!inCreateUsernameGroup && !inTabsGroup && !inUpdatesScreen) {
+    } else if (session && (!profile || !profile.username)) {
+      // Signed in but no profile or no username, redirect to create username
+      if (!inCreateUsernameGroup && !inUpdatesScreen) {
         router.replace('/create-username');
       }
     }
-    // If logged in with profile, let app/index.tsx handle the redirect to tabs
+    // If logged in with profile that has username, let app/index.tsx handle the redirect to tabs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, profile, loading, segments]);
 
   // Push notifications: setup channels/categories, register token, and handle Accept/Decline actions.

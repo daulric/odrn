@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { isCallingSupported } from "@/lib/calling/isCallingSupported"
+import { sendNewMessagePush } from "@/lib/calling/push"
 import { createOutgoingCall } from "@/lib/calling/signaling"
 import { getAvatarUrl } from "@/lib/getUserProfile"
 import { supabase } from "@/lib/supabase"
@@ -20,7 +21,13 @@ interface Message {
   seen: boolean
 }
 
-import { sendNewMessagePush } from "@/lib/calling/push"
+interface ReceiverProfile {
+  id: string
+  username: string | null
+  email: string | null
+  avatar: string | null
+  is_online: boolean | null
+}
 
 interface ReceiverProfile {
   id: string
@@ -175,6 +182,7 @@ export default function ChatScreen() {
     return () => {
       supabase.removeChannel(channel)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, receiverId])
 
   const handleSend = async () => {

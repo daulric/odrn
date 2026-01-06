@@ -124,13 +124,11 @@ export default function CreateUsernameScreen() {
 
       const { error } = await (supabase as any)
         .from('profiles')
-        .insert({
+        .upsert({
           id: user.id,
           username: normalizedUsername,
-          avatar: null,
-          created_at: new Date().toISOString(),
           email: user.email,
-        });
+        }, { onConflict: 'id' });
 
       if (error) {
         if (error.code === '23505') {

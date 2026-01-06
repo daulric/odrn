@@ -71,7 +71,7 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ userId, showBackButton = true }: ProfileViewProps) {
-  const { profile: currentUserProfile, user: currentUser } = useAuth();
+  const { profile: currentUserProfile } = useAuth();
   const router = useRouter();
   
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -224,6 +224,7 @@ export default function ProfileView({ userId, showBackButton = true }: ProfileVi
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const onRefresh = async () => {

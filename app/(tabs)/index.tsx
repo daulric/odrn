@@ -99,6 +99,7 @@ export default function HomeScreen() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(heartbeatInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Track app state changes
@@ -122,6 +123,7 @@ export default function HomeScreen() {
       // Try to set offline on unmount (may not execute if app is killed)
       setOffline();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Fetch friends and determine online status
@@ -258,6 +260,7 @@ export default function HomeScreen() {
     } finally {
       setFeedLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   useEffect(() => {

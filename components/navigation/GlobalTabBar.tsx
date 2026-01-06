@@ -23,7 +23,7 @@ const tabs: TabItem[] = [
 ];
 
 // Screens where the tab bar should be hidden
-const HIDDEN_SCREENS = ['auth', 'create-username', 'updates-screen', 'call', 'index'];
+const HIDDEN_SCREENS = ['auth', 'create-username', 'updates-screen', 'call', 'chat', 'index'];
 
 export function GlobalTabBar() {
   const { session, profile } = useAuth();

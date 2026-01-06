@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 
 interface Profile {
   id: string;
-  username: string;
+  username: string | null;
   avatar: string | null;
   created_at: string;
   email?: string;
@@ -16,8 +16,8 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   unreadCount: number;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  sendOtp: (email: string) => Promise<{ error: any }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   fetchUnreadCount: () => Promise<void>;
@@ -42,8 +42,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // No profile found
-          setProfile(null);
+          // No profile found - create one
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: userEmail,
+              created_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            setProfile(null);
+          } else {
+            setProfile(newProfile as Profile);
+          }
         } else {
           console.error('Error fetching profile:', error);
           setProfile(null);
@@ -53,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // If profile exists but has no email, and we have the user's email, update it
       if (data && !data.email && userEmail) {
+
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ email: userEmail })
@@ -61,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!updateError) {
           data.email = userEmail;
         } else {
-            console.error('Error updating profile email:', updateError);
+          console.error('Error updating profile email:', updateError);
         }
       }
 
@@ -127,47 +143,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id]);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.email).finally(() => setLoading(false));
+    let isMounted = true;
+
+    async function bootstrap() {
+      setLoading(true);
+      const { data } = await supabase.auth.getSession();
+      
+      if (!isMounted) return;
+
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+
+      if (data.session?.user) {
+        await fetchProfile(data.session.user.id, data.session.user.email);
       } else {
-        setLoading(false);
+        setProfile(null);
       }
-    });
+
+      setLoading(false);
+    }
+
+    bootstrap();
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id, session.user.email);
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!isMounted) return;
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+
+      if (newSession?.user) {
+        await fetchProfile(newSession.user.id, newSession.user.email);
       } else {
         setProfile(null);
         setUnreadCount(0);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+  const sendOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        shouldCreateUser: true,
+      },
     });
     return { error };
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+  const verifyOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
       email,
-      password,
+      token,
+      type: 'email',
     });
     return { error };
   };
@@ -188,11 +221,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Then sign out
       await supabase.auth.signOut();
       setProfile(null);
+      setUnreadCount(0);
     } catch (error) {
       console.error('Error during sign out:', error);
       // Still sign out even if offline update fails
       await supabase.auth.signOut();
       setProfile(null);
+      setUnreadCount(0);
     }
   };
 
@@ -204,8 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         loading,
         unreadCount,
-        signIn,
-        signUp,
+        sendOtp,
+        verifyOtp,
         signOut,
         refreshProfile,
         fetchUnreadCount,
