@@ -16,7 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 const { width } = Dimensions.get("window")
 
 export default function UploadScreen() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [selectedImages, setSelectedImages] = useState<string[]>([])
   const [caption, setCaption] = useState("")

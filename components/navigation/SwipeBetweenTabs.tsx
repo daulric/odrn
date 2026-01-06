@@ -93,6 +93,7 @@ export function SwipeBetweenTabs({
           }
         })
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, disabled, edgeOnly, edgeWidth]);
 
   if (!edgeOnly) {

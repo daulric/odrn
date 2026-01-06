@@ -2,7 +2,7 @@ import { ProfileView } from '@/components/profiles';
 import { getAvatarUrl } from '@/lib/getUserProfile';
 import { supabase } from '@/lib/supabase';
 import * as Haptics from 'expo-haptics';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
@@ -17,7 +17,6 @@ interface Profile {
 export default function ProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const router = useRouter();
   const theme = useTheme();
 
   useEffect(() => {

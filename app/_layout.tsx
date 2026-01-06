@@ -55,6 +55,7 @@ function RootLayoutNav() {
       }
     }
     // If logged in with profile that has username, let app/index.tsx handle the redirect to tabs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, profile, loading, segments]);
 
   // Push notifications: setup channels/categories, register token, and handle Accept/Decline actions.

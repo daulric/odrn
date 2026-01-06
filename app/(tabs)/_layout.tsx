@@ -5,20 +5,14 @@ import { Tabs, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, TouchableWithoutFeedback, View } from 'react-native';
 import { Button, List, Surface, Text, useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const { unreadCount, signOut } = useAuth();
   const [isLogoutMenuVisible, setIsLogoutMenuVisible] = useState(false);
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  // Use an explicit width + alignSelf center for a truly centered floating bar.
-  const tabBarWidth = '90%';
 
   const handleLogout = async () => {
     setIsLogoutMenuVisible(false);

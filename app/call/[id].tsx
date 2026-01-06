@@ -71,7 +71,7 @@ export default function CallScreen() {
   const RTCViewComponent = useMemo(() => {
     if (isExpoGo) return null;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       return require('react-native-webrtc').RTCView as any;
     } catch {
       return null;
@@ -142,6 +142,7 @@ export default function CallScreen() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, user?.id]);
 
   // Subscribe to call state changes
@@ -166,6 +167,7 @@ export default function CallScreen() {
       },
     });
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, router, user?.id]);
 
   // Subscribe to signaling
@@ -191,6 +193,7 @@ export default function CallScreen() {
     });
 
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, user?.id, remoteUserId, mode, call?.status]);
 
   // Create session (once call + user are available)
@@ -218,6 +221,7 @@ export default function CallScreen() {
       onConnectionStateChange: (s) => setConnectionState(s),
       onError: (e) => console.error('WebRTC error:', e),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callId, localUserId, remoteUserId, isCaller]);
 
   // Outgoing call: start immediately (audio-first)
@@ -227,6 +231,7 @@ export default function CallScreen() {
     if (isExpoGo) return;
 
     void sessionRef.current.start({ withVideo: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, call?.id, user?.id]);
 
   const handleAccept = async () => {
@@ -359,6 +364,7 @@ export default function CallScreen() {
         // ignore
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep speaker routing in sync without restarting the in-call session.
@@ -450,6 +456,7 @@ export default function CallScreen() {
 
       return () => clearTimeout(timeout);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionState, callId, call?.status, clearActiveCall, router]);
 
   const statusLabel =

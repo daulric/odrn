@@ -106,6 +106,7 @@ export default function MessagesScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeTab]);
 
   const onRefresh = () => {
@@ -139,8 +140,6 @@ export default function MessagesScreen() {
     ];
 
     // 2. Fetch unread counts for each friend
-    const friendIds = allFriends.map(f => f.friend.id);
-    
     // We can't easily group by in Supabase JS client efficiently for this without RPC
     // So we'll just fetch all unread messages for me and count them client side
     // Or do a count query per friend (expensive).

@@ -293,7 +293,7 @@ export default function AuthScreen() {
                       variant="bodyMedium" 
                       style={{ color: theme.colors.primary, fontWeight: '600' }}
                     >
-                      Didn't receive the code? Resend
+                      Didn&apos;t receive the code? Resend
                     </Text>
                   </TouchableOpacity>
                   

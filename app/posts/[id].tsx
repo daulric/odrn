@@ -61,11 +61,13 @@ export default function PostScreen() {
 
   useEffect(() => {
     fetchPost()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId, user?.id])
 
   const onRefresh = useCallback(() => {
     setRefreshing(true)
     fetchPost()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId])
 
   const renderEmpty = () => (
