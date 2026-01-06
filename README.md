@@ -2,7 +2,7 @@
   <img src="./assets/icon/logo.png" alt="ODRN Logo" width="120" height="120" />
 </p>
 
-<h1 align="center">ODRN</h1>
+<h1 align="center">ODRN by daulric</h1>
 
 <p align="center">
   <strong>A modern communication app built for connection</strong>
