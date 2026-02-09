@@ -19,7 +19,7 @@
     "@gluestack-ui/config": "^1.1.20",
     "@gluestack-ui/themed": "^1.1.73",
     "@preact/signals-react": "^3.6.1",
-    "@preact/signals-react-transform": "^0.6.0",
+    "@preact/signals-react-transform": "^0.8.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.9.3",
